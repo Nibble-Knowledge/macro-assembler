@@ -1,0 +1,16 @@
+#a comment
+NND lit[F]
+NOT ACC
+#Trying a nested Macro
+NEG ACC
+#The carry macro
+GETCARR ACC
+
+#simple acc stuff - being exhaustive in my tests
+INC ACC
+DEC ACC
+
+#shifts
+LSHIFT ACC
+
+LROT ACC

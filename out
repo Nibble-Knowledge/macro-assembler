@@ -1,0 +1,26 @@
+#a comment
+NND lit[F]
+NND lit[F]
+#Trying a nested Macro
+NND lit[F]
+ADD lit[1]
+#The carry macro
+CXA 0
+NND lit[1]
+NND lit[F]
+
+#simple acc stuff - being exhaustive in my tests
+ADD lit[1]
+ADD lit[F]
+
+#shifts
+STR macro[0]
+ADD macro[0]
+
+STR macro[0]
+ADD macro[0]
+STR macro[0]
+CXA 0
+NND lit[1]
+NND lit[F]
+ADD macro[0]

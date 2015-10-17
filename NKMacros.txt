@@ -1,0 +1,770 @@
+//Early draft of assembly macros
+
+//Trying to make it vaguely ARM-like, since that's what I'm familiar with.
+//So several instructions might have a "address - accumulator" version, plus a 
+//dest- operand1 -operand2 version
+
+//Also, I'm assuming existence of static memory locations reserved for asm macros.
+//I'm going to try to number them such that I can safely call macros in macros without
+//running out of memory. So I've got a bit of an informal macro memory stack going on.
+//If you modify this code, keep this in mind and use the macro memory just above whatever
+//macros you call yourself.
+
+//Assuming macro memory is known as "macro_00" and so forth - we shouldn't need more than 400
+//bits to do what we want to do.
+
+//When allowing calls including address labels, I will note any restrictions on them.
+//Typically, I'll do whatever I can to avoid needing to worry about these.
+
+//Also assuming we're using whichever endian-ness puts LSB at the highest-numbered part of the
+//memory used. Storing 0xF00D at 0x0010 would put F at 0x0010, 0 at 0x0011, 0 at 0x0012, and D at 0x0013
+
+//I'm going to frequently define these in a recursive way. It's easier to spot and fix typos; it's
+//also not that hard to just run the macro expander repeatedly until it returns that it didn't
+//expand anything. I'm expecting the workflow to be "while (macroExpand()); replaceLabels();"
+
+//Also assuming lit_X is the address of a literal with value X - probably X+3, if we're keeping
+//that plan
+
+//assume "INTO label_1" if no INTO used on something that takes it
+
+
+
+//-------------------------Complement, Negation, and the basics-----------------------------------
+
+
+//Move stuff in memory
+//call as "MOV [label_1] INTO [label_2]"
+
+LOD [label_1]
+STR [label_2]
+
+
+//Gets the carry bit, alone
+//call as "GETCARR ACC"
+//NAND with b0001 then with b1111
+//If there was a carry, ACC holds b0001
+//If not, ACC holds b0000
+
+CXA 0
+NND [lit_1]
+NND [lit_F]
+
+
+//Bitwise not - of accumulator
+//Call as "NOT ACC"
+//Works because NAND with all ones is NOT.
+
+NND [lit_F]
+
+
+//Increment of accumulator
+//Call as "INC ACC"
+//Simply adds one. Does not care if it overflows.
+//Sets carry bit to 1 iff it overflows from F to 0, 0 otherwise
+
+ADD [lit_1]
+
+
+//Decrement of accumulator
+//call as "DEC ACC"
+//Adds 0xF. Two's complement magic takes care of the rest
+//sets carry bit to 0 iff it underflows from 0 to F, 1 otherwise
+
+ADD [lit_F]
+
+
+//Arithmetic negation of accumulator
+//Call as "NEG ACC"
+//Two's complement negation is bitwise complement + 1
+//Sets carry bit - to 1 iff ACC holds 0, 0 otherwise
+
+NOT ACC
+INC ACC
+
+
+//Complement of memory location, 4-bit
+//Call as "NOT label_1 INTO label_2"
+//No "INTO" implies "INTO label_1"
+
+LOD [label_1]
+NOT ACC
+STR [label_2]
+
+
+//Negation of memory location, 4-bit
+//Call as "NEG label_1 INTO label_2"
+//Or "NEG label_1", implying "INTO label_1"
+//Sets carry bit - to 1 iff you negated 0, 0 otherwise
+
+LOD [label_1]
+NEG ACC
+STR [label_2]
+
+
+//------------------Addition and Subtraction-----------------------------------------
+
+
+//Propagates an addition carry - devoid of adding more things
+//Assumes you've just added something, and stored it.
+//Adds 1 to label_1 INTO label_2 iff carry bit is 1
+//Call as "PROPCARR [label_1] INTO [label_2]"
+//Sets carry bit to 1 if this addition overflows, 0 otherwise
+//If carry bit was already 0, should do nothing, leaving carry as 0
+
+GETCARR ACC
+ADD [label_1]
+STR [label_2]
+
+
+//Adds, assuming ACC already holds carry bit.
+//Can be used as normal add iff ACC = b0000
+//Stores carry bit back into ACC when done. 
+//Note that this is the carry bit for the ENTIRE operation.
+//There are two ADD instructions involved. This complicates things.
+//We've stored the first carry, then ORed it with the second.
+//Call as "ADDC [label_1] [label_2] INTO [label_3]"
+//Uses macro memory up to 01
+
+ADD [label_1]
+STR [macro_01]
+GETCARR ACC
+NOT ACC
+STR [macro_00]
+LOD [macro_01]
+ADD [label_2]
+STR [label_3]
+GETCARR ACC
+NOT ACC
+NND [macro_00]
+
+
+//Adds 8 bits
+//call as "ADD8 [label_1] [label_2] INTO [label_3]"
+//uses macro memory to 01; calls ADDC which uses to 01
+
+LOD [lit_0]
+ADDC [label_1 + 1] [label_2 + 1] INTO [label_3 + 1]
+ADDC [label_1 + 0] [label_2 + 0] INTO [label_3 + 0]
+
+
+//Adds 16 bits
+//Call as "ADD16 [label_1] [label_2] INTO [label_3]"
+//uses macro memory to 01
+
+LOD [lit_0]
+ADDC [label_1 + 3] [label_2 + 3] INTO [label_3 + 3]
+ADDC [label_1 + 2] [label_2 + 2] INTO [label_3 + 2]
+ADDC [label_1 + 1] [label_2 + 1] INTO [label_3 + 1]
+ADDC [label_1 + 0] [label_2 + 0] INTO [label_3 + 0]
+
+
+//Subtracts 4 bits, the easy way
+//Call as "SUB [label_1] [label_2] INTO [label_3]"
+
+LOD [label_1]
+NEG ACC
+ADD [label_2]
+STR [label_3]
+
+
+//Subtracts 8 bits of [label_2] from [label_1]
+//call as "SUB8 [label_1] [label_2] INTO [label_3]"
+//Uses macro memory to 03; calls ADDC which uses to 01
+//Optimised slightly; instead of adding 1 for 2's comp negation,
+//We simply start adding with a carry bit of 1
+
+NOT [label_2 + 1] INTO [macro_03]
+NOT [label_2 + 0] INTO [macro_02]
+LOD [lit_1]
+ADDC [label_1 + 1] [macro_03] INTO [label_3 + 1]
+ADDC [label_1 + 0] [macro_02] INTO [label_3 + 0]
+
+
+//subtracts 16 bits of [label_2] from [label_1]
+//Call as "SUB16 [label_1] [label_2] INTO [label_3]"
+//uses macro memory to 05; calls ADDC which uses to 01
+
+NOT [label_2 + 3] INTO [macro_05]
+NOT [label_2 + 2] INTO [macro_04]
+NOT [label_2 + 1] INTO [macro_03]
+NOT [label_2 + 0] INTO [macro_02]
+LOD [lit_1]
+ADDC [label_1 + 3] [macro_05] INTO [label_3 + 3]
+ADDC [label_1 + 2] [macro_04] INTO [label_3 + 2]
+ADDC [label_1 + 1] [macro_03] INTO [label_3 + 1]
+ADDC [label_1 + 0] [macro_02] INTO [label_3 + 0]
+
+
+//8-Bit negation
+//As 4-bit
+//NEG8 label_1 INTO label_2
+
+NOT [label_1] INTO [label_2]
+NEG [label_1 + 1] INTO [label_2 + 1]
+PROPCARR [label_2]
+
+
+//16-Bit negation
+//call as "NEG16 [label_1] INTO [label_2]"
+
+NOT [label_1 + 0] INTO [label_2 + 0]
+NOT [label_1 + 1] INTO [label_2 + 1]
+NOT [label_1 + 2] INTO [label_2 + 2]
+NEG [label_1 + 3] INTO [label_2 + 3]
+PROPCARR [label_2 + 2]
+PROPCARR [label_2 + 1]
+PROPCARR [label_2 + 0]
+
+
+//--------------------------Bitwise logic-----------------------------------------
+
+//NAND of two memory location
+//call as "NAND label_1 label_2 INTO label_3"
+
+LOD [label_1]
+NND [label_2]
+STR [label_3]
+
+
+//AND of two memory locations
+//call as "AND label_1 label_2 INTO label_3"
+//Assumes INTO label_1 if not stated
+//works as "NOT(label_1 NAND label_2)"
+
+LOD [label_1]
+NND [label_2]
+NOT ACC
+STR [label_3]
+
+
+//OR of two memory locations
+//call as "OR label_1 label_2 INTO label_3"
+//works as (NOT label_1) NAND (NOT label_2)
+//Uses macro memory up to macro_00
+
+NOT [label_1] INTO [macro_00]
+LOD [label_2]
+NOT ACC
+NND [macro_00]
+STR [label_3]
+
+
+//NOR of two memory locations
+//call as "NOR label_1 label_2 INTO label_3"
+//uses macro memory up to 00
+
+NOT [label_1] INTO [macro_00]
+LOD [label_2]
+NOT ACC
+NND [macro_00]
+NOT ACC
+STR [label_3]
+
+
+//XOR of two memory locations
+//call as "XOR label_1 label_2 INTO label_3"
+//uses macro memory up to 01
+// as (((X NAND Y) NAND x) NAND ((X NAND Y) NAND Y))
+
+LOD [label_1]
+NND [label_2]
+STR [macro_00]
+NND [label_1]
+STR [macro_01]
+LOD [macro_00]
+NND [label_2]
+NND [macro_01]
+STR [label_3]
+
+
+//XNOR of two memory locations
+//call as "XNOR label_1 label_2 INTO label_3"
+//uses macro memory up to 01
+
+LOD [label_1]
+NND [label_2]
+STR [macro_00]
+NND [label_1]
+STR [macro_01]
+LOD [macro_00]
+NND [label_2]
+NND [macro_01]
+NOT ACC
+STR [label_3]
+
+
+//Extension of bitwise ops to more digits
+//Works for anything where bits are independent
+//binary bitwise logic, complement, etc.
+//($BITOP)$NUM label_1 label_2 INTO label_3
+//basically just repeat with [label_1 + i] for i in [0,($NUM/4)]
+
+
+
+//This one's a bit crazy, but it kinda works
+
+
+
+
+//-----------------------Advanced bit math - shifts, etc--------------------------
+
+
+//Left-shift acumulator 1 position by adding it to itself
+//call as "LSHIFT ACC"
+//Sets carry bit to 1 iff a 1 falls off the left side, 0 otherwise
+//uses macro memory to 00
+
+STR [macro_00]
+ADD [macro_00]
+
+
+//Left-rotate accumulator 1 position
+//call as "LROT ACC"
+//sets carry bit to 0 always
+//uses macro memory to 00
+
+STR [macro_00]
+ADD [macro_00]
+STR [macro_00]
+GETCARR ACC
+ADD [macro_00]
+
+
+//Left-shift memory 1 position
+//call as "LSHIFT [label_1] INTO [label_2]"
+//Assumes ACC holds carry, or 0
+//Sets carry bit to 1 iff a 1 was in MSB, 0 otherwise
+
+ADD [label_1]
+ADD [label_1]
+STR [label_2]
+
+
+//left-shift 8 bits of memory 1 position
+//call as "LSHIFT8 [label_1] INTO [label_2]"
+//Assumes ACC holds 0 or carry
+//Sets carry bit to 1 iff a 1 was in MSB, 0 otherwise
+
+LSHIFT [label_1 + 1] INTO [label_2 + 1]
+GETCARR ACC
+LSHIFT [label_1 + 0] INTO [label_2 + 0]
+
+
+//Left-shift 16
+//Assumes ACC holds 0 or carry
+//Call as "LSHIFT16 [label_1] INTO [label_2]"
+
+LSHIFT8 [label_1 + 2] INTO [label_2 + 2]
+GETCARR ACC
+LSHIFT8 [label_1 + 0] INTO [label_2 + 0]
+
+
+//Left-rotates 4 bits of memory 1 position
+//call as "LROT [label_1] INTO [label_2]"
+
+LOD [lit_0]
+LSHIFT [label_1] INTO [label_2]
+GETCARR ACC
+ADD [label_2]
+STR [label_2]
+
+
+//Left-rotate 8 bits of memory 1 position
+//call as LROT8 [label_1] INTO [label_2]
+
+LOD [lit_0]
+LSHIFT8 [label_1] INTO [label_2]
+GETCARR ACC
+ADD [label_2 + 1]
+STR [label_2 + 1]
+
+
+//Left-rotate 16 bits of memory 1 position
+//Call as LROT16 [label_1] INTO [label_2]
+
+LOD [lit_0]
+LSHIFT16 [label_1] INTO [label_2]
+GETCARR ACC
+ADD [label_2 + 3]
+STR [label_2 + 3]
+
+
+//Larger-scale shifting/rotating, including right rotate, can be implemented by
+//first rearranging the nibbles to the closest valid rotation to the right of the
+//target amount, then left-shifting (or rotating) up to three times to get the bits
+//in the right order.
+
+
+//----------------Multiplication!---------------------------------------------
+//And Ryan thought repeated addition would suffice. Bah!
+//Also note that due to multiplication having output length
+//equal to the sum of input lengths, these work best if the
+//inputs are halfway empty. So MULT16 works best with 8-bit inputs.
+
+
+//Multiply 4 unsigned bits. This is kinda trivial, but still...
+//call as "MULT [label_1] [label_2] INTO [label_3]"
+//Will require more comments to explain
+//uses macro memory to 02
+
+MOV [label_1] INTO [macro_00]		//We're using macro memory because this is a destructive operation
+MOV [label_2] INTO [macro_01]
+MOV [lit_0] INTO [macro_02]
+
+LOD [lit_E]			//If LSB = 1, add [label_1] to macro_02 - bit mask b1110
+NND [macro_01]
+JMP _2bit			//if = 0, skip next two lines
+LOD [macro_00]
+STR [macro_02]
+
+_2bit:
+LOD [lit_0]
+LSHIFT [macro_00]	//multiply macro_00 by 2
+
+LOD [lit_D]			// if 2's bit = 1, add [label_1] << 1 to macro_02 - bit mask b1101
+NND [macro_01]
+JMP _4bit
+LOD [macro_00]
+ADD [macro_02]
+STR [macro_02]
+
+_4bit:
+LOD [lit_0]
+LSHIFT [macro_00]	//double it again!
+
+LOD [lit_B]			//if 4's bit = 1, etc. bit mask b1011
+NND [macro_01]
+JMP _8bit
+LOD [macro_00]
+ADD [macro_02]
+STR [macro_02]
+
+_8bit:
+LOD [lit_0]
+LSHIFT [macro_00]	//more doublings!
+
+LOD [lit_7]			//if MSB = 16
+NND [macro_01]
+JMP _done
+LOD [macro_00]
+ADD [macro_02]
+STR [macro_02]
+
+_done:
+MOV [macro_02] [label_3]
+
+
+
+
+//8-bit unsigned multiplication, to show how it works with larger stuff
+//call as "MULT8 [label_1] [label_2] INTO [label_3]"
+//uses macro memory to 07 - requires that macro memory act like an array
+
+MOV [label_1 + 0] INTO [macro_02]
+MOV [label_1 + 1] INTO [macro_03]
+MOV [label_2 + 0] INTO [macro_04]
+MOV [label_2 + 1] INTO [macro_05]
+MOV [lit_0] INTO [macro_06]
+MOV [lit_0] INTO [macro_07]
+
+LOD [lit_E]
+NND [macro_03]
+JMP _2bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_2bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_D]
+NND [macro_03]
+JMP _4bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_4bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_B]
+NND [macro_03]
+JMP _8bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_8bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_7]
+NND [macro_03]
+JMP _16bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_16bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_E]
+NND [macro_02]
+JMP _32bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_32bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_D]
+NND [macro_02]
+JMP _64bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_64bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_B]
+NND [macro_02]
+JMP _128bit8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_128bit8:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_7]
+NND [macro_02]
+JMP _Done8
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_Done8:
+MOV [macro_04 + 0] INTO [label_3 + 0]
+MOV [macro_05 + 0] INTO [label_3 + 1]
+
+//The same theory works for larger multiplications,
+//except you need to use appropriately-sized basic math.
+
+
+//Signed 8-bit multiplication
+//call as "MULT8S [label_1] [label_2] INTO [label_3]"
+//Take care of signs, unsigned multiply, then negate if necessary
+//negate iff XOR (MSB_1, MSB_2)
+//uses macro memory to 09
+
+
+MOV [label_1 + 0] INTO [macro_02]
+MOV [label_1 + 1] INTO [macro_03]
+MOV [label_2 + 0] INTO [macro_04]
+MOV [label_2 + 1] INTO [macro_05]
+MOV [lit_0] INTO [macro_06]
+MOV [lit_0] INTO [macro_07]
+
+LOD [macro_02]
+NND [lit_8]
+NOT ACC
+STR [macro_08]
+JMP _CheckedFirst8S
+
+NEG8 [macro_02] INTO [macro_02]
+
+_CheckedFirst8S:
+LOD [macro_04]
+NND [lit_8]
+NOT ACC
+STR [macro_09]
+JMP _CheckedSecond8S
+
+NEG8 [macro_04] INTO [macro_04]
+
+_CheckedSecond8S:
+XOR [macro_08] [macro_09] INTO [macro_08]
+
+LOD [lit_E]
+NND [macro_03]
+JMP _2bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_2bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_D]
+NND [macro_03]
+JMP _4bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_4bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_B]
+NND [macro_03]
+JMP _8bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_8bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_7]
+NND [macro_03]
+JMP _16bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_16bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_E]
+NND [macro_02]
+JMP _32bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_32bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_D]
+NND [macro_02]
+JMP _64bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_64bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_B]
+NND [macro_02]
+JMP _128bit8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_128bit8S:
+LOD [lit_0]
+LSHIFT8 [macro_04]
+
+LOD [lit_7]
+NND [macro_02]
+JMP _Done8S
+ADD8 [macro_06] [macro_04] INTO [macro_04]
+
+_Done8S:
+LOD [macro_08]
+JMP _DoneSign8
+
+NEG8 [macro_04] INTO [macro_04]
+
+_DoneSign8:
+MOV [macro_04 + 0] INTO [label_3 + 0]
+MOV [macro_05 + 0] INTO [label_3 + 1]
+
+
+//Again, same theory expands upwards as needed.
+
+
+
+//-----------------Pointers!--------------------------------
+//I have no idea how to get a pointer for something.
+//Literally no idea.
+
+//Dereferencing a pointer is slightly easier.
+//But still very silly.
+//Shown here is how to MOV a pointer not known at compile-time
+//call as "DREF [label_1] INTO [label_2]"
+//where [label_1] is the address of the pointer variable itself
+// so in C terms, [label_1] is a pointer pointer
+
+MOV [label_1 + 0] INTO [_LODInstruction + 1]
+MOV [label_1 + 1] INTO [_LODInstruction + 2]
+MOV [label_1 + 2] INTO [_LODInstruction + 3]
+MOV [label_1 + 3] INTO [_LODInstruction + 4]
+
+_LODInstruction:
+LOD 0x0003
+STR [label_2]
+
+//--------------------Conditional Jumps-------------------------------------
+//We alreay have jump if(ACC == 0).
+//Let's make that, plus the CXA instruction, more useful!
+//Comparing larger numbers is a little bit subtle, and depends
+//if they're signed or not. Basically we just look for the first sign of
+//inequality, and see which way it points us.
+
+
+//JMPEQ [label_1] [label_2] TO [dest]
+//Compares things using XOR. Because it's the easiest way.
+//Uses to macro_01
+
+XOR [label_1] [label_2] INTO [macro_00]
+LOD [macro_00]
+JMP [dest]
+
+
+//JMPNE [label_1] [label_2] TO [dest]
+//Compares using XNOR
+//uses to macro_01
+
+XNOR [label_1] [label_2] INTO [macro_00]
+LOD [macro_00]
+JMP [dest]
+
+//Comparing longer numbers using the above two just consists of
+//testing one nibble at a time. As long as all nibbles are tested,
+//they'll put you in the right spot.
+
+
+
+//For simplicity's sake, I've given a minimal set of conditionals for now.
+//This should give you enough to make whatever actual conditional you 
+//want, so long as you're smart about the order of operands. You really 
+//only need equality, NOT, and one of the set of < > <= >= to set up the
+//whole family of operations.
+
+//Signed and unsigned shown separately, since they're actually quite different.
+
+//I'm not yet sure if these work. We have a "Carry" bit, but most 
+//of my sources say we need an "Overflow" bit, which is slightly different.
+
+//I might be forced to do bit-by-bit comparisons. Bleh.
+//Or expand the numbers into larger fields, then do a simple subtraction and check the carry.
+//If I do the larger field thing, I'd have to handle sign bits on signed numbers first,
+//then subtract iff they're both the same sign.
+
+
+//JMPGEU [label_1] [label_2] TO [dest]
+//Jump if [label_1] >= [label_2], unsigned
+//Subtracts [label_2] from [label_1], then checks the "sign" bit.
+ 
+LOD [label_2]
+NEG ACC
+ADD [label_1]
+NND [lit_8]
+NOT ACC
+JMP [dest]
+
+
+//JMPGES [label_1] [label_2] TO [dest]
+//jump if [label_1] >= [label_2], signed
+//Subtracts [label_2] from [label_1], then checks the Carry XOR MSB bit
+//which was added for this purpose.
+//If the XOR bit is 
+
+LOD [label_2]
+NEG ACC
+ADD [label_1]
+CXA 0
+NND [lit_8]
+NOT ACC
+JMP [dest]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
