@@ -11,8 +11,11 @@ import os
 	#native NK opcodes
 opcodes = ["ADD", "NND", "LOD", "STR", "HLT", "CXA", "NOP", "JMP"]
 
-	#accumulator-based macros - only recognising two for now
-accMacroCodes = ["NOT", "NEG", "GETCARR", "INC", "DEC", "LSHIFT", "LROT"]
+	#accumulator-based macros - all eight!
+accMacroCodes = ["NOT", "NEG", "GETCARR", "INC", "DEC", "LSHIFT", "LROT", "LOGNOT"]
+
+	#unary macros - for now, one candidate
+unaMacroCodes = ["MOV"]
 
 #global variables
 
@@ -42,47 +45,45 @@ def expandline(splitline):
 	elif isUnaryMacro(splitline):
 		expLine.extend(expandUnaryMacro(splitline))
 
+	else:
+		syntaxfail(splitline)
+
 	return expLine
 
 #boolean functions - for identifying macros and syntax errors
 
 
+#blank or comment lines fall through unchanged - call first
 def isBlankOrComment(splitline):
-	if len(splitline) < 1:
-		return True
-	elif splitline[0][0] == '#':
+	if len(splitline) == 0 or splitline[0][0] == '#':
 		return True
 	else:
 		return False
 
+#checks if it's native ASM. Call after isBlankOrComment, but before checking
+#for actual macros
 def isNativeASM(splitline):
-	if len(splitline) < 1:
-		return False
-	elif splitline[0] in opcodes:
-		if len(splitline) == 2:
-			return True
-		else:
-			syntaxfail(splitline)
+	if len(splitline) == 2 and splitline[0] in opcodes:
+		return True
 	else:
 		return False
 
+#if it's not a comment or native ASM, anything with 2 tokens is an acc macro
 def isAccMacro(splitline):
-	if len(splitline) < 2:
-		return False
-	elif splitline[0] in accMacroCodes and splitline[1] == "ACC":
-		#probably an acc macro
-		if len(splitline) == 2:
-			return True
-		else:
-			syntaxfail(splitline)
+	if len(splitline) == 2 and splitline[0] in accMac and splitline[1] == "ACC":
+		return True
 	else:
 		return False
 
+#if not a comment or native ASM, anything with 4 tokens is a unary macro
 def isUnaryMacro(splitline):
-	return False
+	if len(splitline) == 4 and splitline[0] in unaMac and splitline[2] == "INTO":
+		return True		
+	else:
+		return False
 
 def syntaxfail(errorline):
-	raise Exception("Syntax Error", errorLine.join())
+	raise Exception("Syntax Error", " ".join(errorLine))
 
 
 #replacement functions - expand those macros!
@@ -101,7 +102,65 @@ def expandAccMacro(inMac):
 		outlines.extend(expandline(line.split()))
 	return outlines
 
+#Takes: a split line
+#Returns: a list of (joined) lines
+def expandUnaryMacro(inMac):
+	outlines = []
+	op1 = inMac[1]
+	dest = inMac[3]
 
+	for line in unaMac[inMac[0]].splitlines():
+		splitline = line.split()
+	
+		#replace our placeholder labels with the input ones
+		splitline = replaceLabels(splitline, "$op1", op1)
+		splitline = replaceLabels(splitline, "$dest", dest)
+
+		#recursively expand the resulting line
+		outlines.extend(expandline(splitline))
+	return outlines
+
+#Takes: a split line,
+#		the placeholder (starts with $ usually) label to replace
+#		the new label (maybe with [offset]) to replace it with
+#Also note that the placeholder in the line may also have an offset
+#Returns: a split line
+def replaceLabels(splitline, oldlabel, replabel):
+	outline = []
+
+	for token in splitline:
+		if token.startswith(oldlabel):
+
+			#default values, if no offset found
+			oldoffset = 0
+			repoffset = 0
+
+			#get the offset from the replacement, if necessary
+			if '[' in replabel and ']' in replabel:
+				repoffset = replabel[replabel.index('[') + 1 : replabel.index(']')]
+				repoffset = int(repoffset, 16)
+
+			#and from the old label, if necessary
+			if '[' in token and ']' in token:
+				oldoffset = token[token.index('[') + 1 : token.index(']')]
+				oldoffset = int(oldoffset, 16)
+			
+			#add them together
+			newoffset = oldoffset + repoffset
+
+			#smash together the new token
+			if '[' in replabel:
+				newtoken = replabel[:replabel.find('[')] + '[' + hex(newoffset)[2:] + ']'
+			else:
+				newtoken = replabel + '[' + hex(newoffset)[2:] + ']'
+
+			#put it in the output line
+			outline.append(newtoken)
+		else:
+			#not the label we're looking for
+			outline.append(token)
+
+	return outline
 
 
 #macros for expansion
@@ -114,7 +173,7 @@ NND lit[F]"""
 
 accMac["NEG"] = """\
 NOT ACC
-ADD lit[1]"""
+INC ACC"""
 
 accMac["GETCARR"] = """\
 CXA 0
@@ -137,6 +196,110 @@ ADD macro[0]
 STR macro[0]
 GETCARR ACC
 ADD macro[0]"""
+
+accMac["LOGNOT"] = """\
+ADD lit[F]
+CXA 0
+NND lit[1]
+NND lit[1]
+NND lit[F]"""
+
+
+#unary operation macros
+
+unaMac = dict()
+
+unaMac["MOV"] = """\
+LOD $op1[0]
+STR $dest[0]"""
+
+unaMac["MOV8"] = """\
+LOD $op1[0]
+STR $dest[0]
+LOD $op1[1]
+STR $dest[1]"""
+
+unaMac["MOV16"] = """\
+LOD $op1[0]
+STR $dest[0]
+LOD $op1[1]
+STR $dest[1]
+LOD $op1[2]
+STR $dest[2]
+LOD $op1[3]
+STR $dest[3]"""
+
+unaMac["MOV32"] = """\
+LOD $op1[0]
+STR $dest[0]
+LOD $op1[1]
+STR $dest[1]
+LOD $op1[2]
+STR $dest[2]
+LOD $op1[3]
+STR $dest[3]
+LOD $op1[4]
+STR $dest[4]
+LOD $op1[5]
+STR $dest[5]
+LOD $op1[6]
+STR $dest[6]
+LOD $op1[7]
+STR $dest[7]"""
+
+unaMac["MOV64"] = """\
+LOD $op1[0]
+STR $dest[0]
+LOD $op1[1]
+STR $dest[1]
+LOD $op1[2]
+STR $dest[2]
+LOD $op1[3]
+STR $dest[3]
+LOD $op1[4]
+STR $dest[4]
+LOD $op1[5]
+STR $dest[5]
+LOD $op1[6]
+STR $dest[6]
+LOD $op1[7]
+STR $dest[7]
+LOD $op1[8]
+STR $dest[8]
+LOD $op1[9]
+STR $dest[9]
+LOD $op1[A]
+STR $dest[A]
+LOD $op1[B]
+STR $dest[B]
+LOD $op1[C]
+STR $dest[C]
+LOD $op1[D]
+STR $dest[D]
+LOD $op1[E]
+STR $dest[E]
+LOD $op1[F]
+STR $dest[F]"""
+
+unaMac["NOT"] = """\
+LOD $op1
+NOT ACC
+STR $dest"""
+
+unaMac["NEG"] = """\
+LOD $op1
+NEG ACC
+STR $dest"""
+
+unaMac["PROPCARR"] = """\
+GETCARR ACC
+ADD $op1
+STR $dest"""
+
+unaMac["NEG8"] = """\
+NOT $op1 INTO $dest
+NEG $op1[1] INTO $dest[1]
+PROPCARR $dest INTO $dest"""
 
 
 

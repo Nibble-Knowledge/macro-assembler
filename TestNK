@@ -14,3 +14,15 @@ DEC ACC
 LSHIFT ACC
 
 LROT ACC
+
+#unary macros! Testing simple first
+MOV lit[F] INTO place
+
+#testing that the math works
+MOV64 place[3] INTO elsewhere[A]
+
+#does recursion between acc and unary work?
+NOT somewhere[1f] INTO place
+
+#more complex recursion - 8-bit negations!
+NEG8 source INTO dest

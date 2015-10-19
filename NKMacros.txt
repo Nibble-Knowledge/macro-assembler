@@ -302,8 +302,20 @@ STR [label_3]
 
 
 
-//This one's a bit crazy, but it kinda works
+//This one's a bit crazy, but it kinda works. I think. Tests are needed,
+//but the principle is sound
+//LOGNOT ACC
+//Logical negates the accumulator (like ! operator)
+//Works by adding F, which produces a carry unless ACC is 0
+//Then setting all but carry bit to 1, while preserving value of carry bit
+//Then taking complement, meaning we get 0 if there was a carry
+//Or get 1 if there was no carry.
 
+ADD lit[F]
+CXA 0
+NND lit[1]
+NND lit[1]
+NND lit[F]
 
 
 
