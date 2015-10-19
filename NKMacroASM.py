@@ -8,14 +8,8 @@ import os
 
 #hardcoded data - for identifying macro types
 	
-	#native NK opcodes
+	#native NK opcodes so we can identify them
 opcodes = ["ADD", "NND", "LOD", "STR", "HLT", "CXA", "NOP", "JMP"]
-
-	#accumulator-based macros - all eight!
-accMacroCodes = ["NOT", "NEG", "GETCARR", "INC", "DEC", "LSHIFT", "LROT", "LOGNOT"]
-
-	#unary macros - for now, one candidate
-unaMacroCodes = ["MOV"]
 
 #global variables
 
@@ -44,6 +38,9 @@ def expandline(splitline):
 
 	elif isUnaryMacro(splitline):
 		expLine.extend(expandUnaryMacro(splitline))
+
+	elif isBinaryMacro(splitline):
+		expLine.extend(expandBinaryMacro(splitline))
 
 	else:
 		syntaxfail(splitline)
@@ -82,9 +79,16 @@ def isUnaryMacro(splitline):
 	else:
 		return False
 
+#if not a comment, anything with 5 tokens is a binary macro
+def isBinaryMacro(splitline):
+	if len(splitline) == 5 and splitline[0] in binMac and splitline[3] == "INTO":
+		return True
+	else:
+		return False
+
+
 def syntaxfail(errorline):
 	raise Exception("Syntax Error", " ".join(errorLine))
-
 
 #replacement functions - expand those macros!
 
@@ -114,6 +118,26 @@ def expandUnaryMacro(inMac):
 	
 		#replace our placeholder labels with the input ones
 		splitline = replaceLabels(splitline, "$op1", op1)
+		splitline = replaceLabels(splitline, "$dest", dest)
+
+		#recursively expand the resulting line
+		outlines.extend(expandline(splitline))
+	return outlines
+
+#Takes: a split line
+#Returns: a list of lines
+def expandBinaryMacro(inMac):
+	outlines = []
+	op1 = inMac[1]
+	op2 = inMac[2]
+	dest = inMac[4]
+
+	for line in binMac[inMac[0]].splitlines():
+		splitline = line.split()
+	
+		#replace our placeholder labels with the input ones
+		splitline = replaceLabels(splitline, "$op1", op1)
+		splitline = replaceLabels(splitline, "$op2", op2)
 		splitline = replaceLabels(splitline, "$dest", dest)
 
 		#recursively expand the resulting line
@@ -300,6 +324,29 @@ unaMac["NEG8"] = """\
 NOT $op1 INTO $dest
 NEG $op1[1] INTO $dest[1]
 PROPCARR $dest INTO $dest"""
+
+
+#binary operation macros
+
+binMac = dict()
+
+binMac["ADDC"] = """\
+ADD $op1
+STR macro[1]
+GETCARR ACC
+NOT ACC
+STR macro[0]
+LOD macro[1]
+ADD $op1
+STR $dest
+GETCARR ACC
+NOT ACC
+NND macro[0]"""
+
+binMac["ADD8"] = """\
+LOD lit[0]
+ADDC $op1[1] $op2[1] INTO $dest[1]
+ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 
 

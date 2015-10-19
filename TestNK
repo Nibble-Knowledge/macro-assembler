@@ -26,3 +26,6 @@ NOT somewhere[1f] INTO place
 
 #more complex recursion - 8-bit negations!
 NEG8 source INTO dest
+
+#test addition
+ADD8 num othernum INTO sum
