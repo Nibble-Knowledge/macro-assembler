@@ -1,0 +1,92 @@
+	Accumulator Macros
+
+NOT 	- bitwise complement
+NEG		- 2's complement negation
+LOGNOT	- boolean negation (nonzero becomes zero, zero becomes nonzero)
+GETCARR	- isolates the carry bit from the status register
+GETCMP	- isolates the 2'c complement comparison bit from status register
+INC		- increments (adds 1)
+DEC		- decrements (subtracts 1)
+LSHIFT	- left shift by 1, filling LSB with 0.
+LROT	- left rotate by 1, filling LSB with old MSB
+
+	Normal Unary Macros (OPCODE mem1 INTO mem2)
+
+MOV		- copies memory, without altering it
+NOT		- bitwise complement
+NEG		- 2's complement negation
+LSHIFT	- left shift by 1
+LROT	- left rotate by 1
+
+	Normal Binary Macros (OPCODE mem1 mem2 INTO mem3)
+
+ADD		- basic addition with carry
+SUB		- subtraction, with carry
+NAND	- bitwise NAND
+AND		- bitwise AND
+OR		- bitwise OR
+NOR		- bitwise NOR
+XOR		- bitwise XOR
+XNOR	- bitwise XNOR
+
+	Jump Macros (OPCODE mem1 mem2 TO code1) - not fully tested yet
+
+JMPEQ	- jump if memory locations hold equal contents
+JMPNE	- jump if memory locations hold different contents
+JMPG	- jump if mem1 strictly greater than mem2, signed
+JMPGE	- jump if mem1 greater or equal to mem2, signed
+JMPL	- jump if mem1 strictly less than mem2, signed
+JMPLE	- jump if mem1 less or equal to mem2, signed
+
+	Syntactic Requirements
+
+To simplify the core of the macro expander, certain constraints
+have been placed on syntax. In general, only one statement can
+be on each line. User-defined labels shown in code
+must be on a line with nothing else, and must start with an
+underscore and end with a colon ("_myLabel:", for instance).
+Line comments are marked with a leading hash ('#'), and cannot
+be on the same line as anything else.
+
+Blank lines and line comment are both unaltered by this program,
+meaning that the output code will be slightly easier to read and
+debug. This was done not only for your benefit, but also for mine.
+Allowing comments to pass through means that I will have a much
+easier time testing and debugging this program!
+
+	Macro Variations
+
+All normal unary and binary macros have size variants, for
+8, 16, 32, and 64 bit operand sizes. They are used by appending
+the size to the opcode. For example, ADD32 or LSHIFT8 are also
+valid opcodes. Assumes less significant bits have higher memory
+addresses.
+
+Labels can be offset by a hexadecimal value (no need for the
+0x prefix, though it doesn't break anything), which signifies
+a memory position that many nibbles "further" (greater address
+value) in memory. For instance, if place[0] has previously been
+used to MOV16 the value 0xC0DE, then place [2] now holds the
+value "D".
+
+Certain macros will have signed and unsigned variations. In particular,
+comparison macros will (when I add them) have unsigned variations
+accessible by (for instance) JMPUGE, adding a U after the JMP
+part of the opcode. Also, multiplication will need signed and
+unsigned variants, as will division and modulus when I get around
+to those.
+
+	Special Macros
+
+These were designed for use by other macros, but are available
+to use in your programs if you want.
+
+ADDC	- binary macro. Requires that ACC hold previous carry.
+		Propagates addition, and sets ACC to hold output carry.
+		Note that this may not be the same as the STAT carry;
+		the one in the ACC is correct.
+
+PROPCARR- unary macro. Adds the carry bit from STAT to the first
+		operand, and stores the result in the second operand.
+
+

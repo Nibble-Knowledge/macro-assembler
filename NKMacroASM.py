@@ -33,6 +33,9 @@ def expandline(splitline):
 	elif isNativeASM(splitline):	#the base case for code lines
 		expLine.append(" ".join(splitline))
 
+	elif isJumpLabel(splitline):	#the base case for jump labels
+		expLine.append(" ".join(splitline))
+
 	elif isAccMacro(splitline):
 		expLine.extend(expandAccMacro(splitline))
 
@@ -41,6 +44,9 @@ def expandline(splitline):
 
 	elif isBinaryMacro(splitline):
 		expLine.extend(expandBinaryMacro(splitline))
+
+	elif isJumpMacro(splitline):
+		expLine.extend(expandJumpMacro(splitline))
 
 	else:
 		syntaxfail(splitline)
@@ -65,6 +71,13 @@ def isNativeASM(splitline):
 	else:
 		return False
 
+#checks if it fits the standard jump label syntax
+def isJumpLabel(splitline):
+	if len(splitline) == 1 and splitline[0][0] == '_' and splitline[0][-1] == ':'
+		return True
+	else
+		return False
+
 #if it's not a comment or native ASM, anything with 2 tokens is an acc macro
 def isAccMacro(splitline):
 	if len(splitline) == 2 and splitline[0] in accMac and splitline[1] == "ACC":
@@ -79,9 +92,16 @@ def isUnaryMacro(splitline):
 	else:
 		return False
 
-#if not a comment, anything with 5 tokens is a binary macro
+#if not a comment, anything with 5 tokens is and "INTO" is a binary macro
 def isBinaryMacro(splitline):
 	if len(splitline) == 5 and splitline[0] in binMac and splitline[3] == "INTO":
+		return True
+	else:
+		return False
+
+#if not a comment, anything with 5 tokens and "TO" is a jump macro
+def isJumpMacro(splitline):
+	if len(splitline) == 5 and splitline[0] in jmpMac and splitline[3] = "TO":
 		return True
 	else:
 		return False
@@ -133,6 +153,26 @@ def expandBinaryMacro(inMac):
 	dest = inMac[4]
 
 	for line in binMac[inMac[0]].splitlines():
+		splitline = line.split()
+	
+		#replace our placeholder labels with the input ones
+		splitline = replaceLabels(splitline, "$op1", op1)
+		splitline = replaceLabels(splitline, "$op2", op2)
+		splitline = replaceLabels(splitline, "$dest", dest)
+
+		#recursively expand the resulting line
+		outlines.extend(expandline(splitline))
+	return outlines
+
+#Takes: a split line
+#Returns: a list of lines
+def expandJumpMacro(inMac):
+	outlines = []
+	op1 = inMac[1]
+	op2 = inMac[2]
+	dest = inMac[4]
+
+	for line in jmpMac[inMac[0]].splitlines():
 		splitline = line.split()
 	
 		#replace our placeholder labels with the input ones
@@ -204,6 +244,11 @@ CXA 0
 NND lit[1]
 NND lit[F]"""
 
+accMac["GETCMP"] = """\
+CXA 0
+NND lit[8]
+NND lit[F]"""
+
 accMac["INC"] = """\
 ADD lit[1]"""
 
@@ -229,81 +274,13 @@ NND lit[1]
 NND lit[F]"""
 
 
-#unary operation macros
+#unary operation macros - 4-bit versions
 
 unaMac = dict()
 
 unaMac["MOV"] = """\
 LOD $op1[0]
 STR $dest[0]"""
-
-unaMac["MOV8"] = """\
-LOD $op1[0]
-STR $dest[0]
-LOD $op1[1]
-STR $dest[1]"""
-
-unaMac["MOV16"] = """\
-LOD $op1[0]
-STR $dest[0]
-LOD $op1[1]
-STR $dest[1]
-LOD $op1[2]
-STR $dest[2]
-LOD $op1[3]
-STR $dest[3]"""
-
-unaMac["MOV32"] = """\
-LOD $op1[0]
-STR $dest[0]
-LOD $op1[1]
-STR $dest[1]
-LOD $op1[2]
-STR $dest[2]
-LOD $op1[3]
-STR $dest[3]
-LOD $op1[4]
-STR $dest[4]
-LOD $op1[5]
-STR $dest[5]
-LOD $op1[6]
-STR $dest[6]
-LOD $op1[7]
-STR $dest[7]"""
-
-unaMac["MOV64"] = """\
-LOD $op1[0]
-STR $dest[0]
-LOD $op1[1]
-STR $dest[1]
-LOD $op1[2]
-STR $dest[2]
-LOD $op1[3]
-STR $dest[3]
-LOD $op1[4]
-STR $dest[4]
-LOD $op1[5]
-STR $dest[5]
-LOD $op1[6]
-STR $dest[6]
-LOD $op1[7]
-STR $dest[7]
-LOD $op1[8]
-STR $dest[8]
-LOD $op1[9]
-STR $dest[9]
-LOD $op1[A]
-STR $dest[A]
-LOD $op1[B]
-STR $dest[B]
-LOD $op1[C]
-STR $dest[C]
-LOD $op1[D]
-STR $dest[D]
-LOD $op1[E]
-STR $dest[E]
-LOD $op1[F]
-STR $dest[F]"""
 
 unaMac["NOT"] = """\
 LOD $op1
@@ -320,15 +297,128 @@ GETCARR ACC
 ADD $op1
 STR $dest"""
 
+unaMac["LSHIFT"] = """\
+LOD lit[0]
+ADD $op1
+ADD $op1
+STR $dest"""
+
+unaMac["LROT"] = """\
+LOD lit[0]
+LSHIFT $op1 INTO $dest
+GETCARR ACC
+ADD $dest
+STR $dest"""
+
+#unary operation macros - longer versions
+
+unaMac["MOV8"] = """\
+MOV $op1[0] $dest[0]
+MOV $op1[1] $dest[1]"""
+
+unaMac["MOV16"] = """\
+MOV8 $op1[0] $dest[0]
+MOV8 $op1[2] $dest[2]"""
+
+unaMac["MOV32"] = """\
+MOV16 $op1[0] $dest[0]
+MOV16 $op1[4] $dest[4]"""
+
+unaMac["MOV64"] = """\
+MOV32 $op1[0] $dest[0]
+MOV32 $op1[8] $dest[8]"""
+
+unaMac["NOT8"] = """\
+NOT $op1[0] $dest[0]
+NOT $op1[1] $dest[1]"""
+
+unaMac["NOT16"] = """\
+NOT8 $op1[0] $dest[0]
+NOT8 $op1[2] $dest[2]"""
+
+unaMac["NOT32"] = """\
+NOT16 $op1[0] $dest[0]
+NOT16 $op1[4] $dest[4]"""
+
+unaMac["NOT64"] = """\
+NOT32 $op1[0] $dest[0]
+NOT32 $op1[8] $dest[8]"""
+
 unaMac["NEG8"] = """\
 NOT $op1 INTO $dest
 NEG $op1[1] INTO $dest[1]
 PROPCARR $dest INTO $dest"""
 
+unaMac["NEG16"] = """\
+NOT8 $op1 INTO $dest
+NEG8 $op1[2] INTO $dest[2]
+PROPCARR $dest[1] INTO $dest[1]
+PROPCARR $dest[0] INTO $dest[0]"""
 
-#binary operation macros
+unaMac["NEG32"] = """\
+NOT16 $op1 INTO $dest
+NEG16 $op1[4] INTO $dest[4]
+PROPCARR $dest[3] INTO $dest[3]
+PROPCARR $dest[2] INTO $dest[2]
+PROPCARR $dest[1] INTO $dest[1]
+PROPCARR $dest[0] INTO $dest[0]"""
+
+unaMac["NEG64"] = """\
+NOT32 $op1 INTO $dest
+NEG32 $op1[8] INTO $dest[8]
+PROPCARR $dest[7] INTO $dest[7]
+PROPCARR $dest[6] INTO $dest[6]
+PROPCARR $dest[5] INTO $dest[5]
+PROPCARR $dest[4] INTO $dest[4]
+PROPCARR $dest[3] INTO $dest[3]
+PROPCARR $dest[2] INTO $dest[2]
+PROPCARR $dest[1] INTO $dest[1]
+PROPCARR $dest[0] INTO $dest[0]"""
+
+unaMac["LSHIFT8"] = """\
+ADD8 $op1 $op1 INTO $dest"""
+
+unaMac["LSHIFT16"] = """\
+ADD16 $op1 $op1 INTO $dest"""
+
+unaMac["LSHIFT32"] = """\
+ADD32 $op1 $op1 INTO $dest"""
+
+unaMac["LSHIFT64"] = """\
+ADD64 $op1[0] $op1[0] INTO $dest[0]"""
+
+unaMac["LROT8"] = """\
+LSHIFT8 $op1 INTO $dest
+GETCARR ACC
+ADD $dest[1]
+STR $dest[1]"""
+
+unaMac["LROT16"] = """\
+LSHIFT16 $op1 INTO $dest
+GETCARR ACC
+ADD $dest[3]
+STR $dest[3]"""
+
+unaMac["LROT32"] = """\
+LSHIFT32 $op1 INTO $dest
+GETCARR ACC
+ADD $dest[7]
+STR $dest[7]"""
+
+unaMac["LROT64"] = """\
+LSHIFT64 $op1 INTO $dest
+GETCARR ACC
+ADD $dest[F]
+STR $dest[F]"""
+
+#binary operation macros, 4-bit
 
 binMac = dict()
+
+binMac["ADD"] = """\
+LOD $op1
+ADD $op2
+STR $dest"""
 
 binMac["ADDC"] = """\
 ADD $op1
@@ -337,16 +427,264 @@ GETCARR ACC
 NOT ACC
 STR macro[0]
 LOD macro[1]
-ADD $op1
+ADD $op2
 STR $dest
 GETCARR ACC
 NOT ACC
 NND macro[0]"""
 
+binMac["SUB"] = """\
+LOD $op1
+NEG ACC
+ADD $op2
+STR $dest"""
+
+binMac["NAND"] = """\
+LOD $op1
+NND $op2
+STR $dest"""
+
+binMac["AND"] = """\
+LOD $op1
+NND $op2
+NOT ACC
+STR $dest"""
+
+binMac["OR"] = """\
+NOT $op1 INTO macro[0]
+LOD $op2
+NOT ACC
+NND macro[0]
+STR $dest"""
+
+binMac["NOR"] = """\
+NOT $op1 INTO macro[0]
+LOD $op2
+NOT ACC
+NND macro[0]
+NOT ACC
+STR $dest"""
+
+binMac["XOR"] = """\
+LOD $op1
+NND $op2
+STR macro[0]
+NND $op1
+STR macro[1]
+LOD macro[0]
+NND $op2
+NND macro[1]
+STR $dest"""
+
+binMac["XNOR"] = """\
+LOD $op1
+NND $op2
+STR macro[0]
+NND $op1
+STR macro[1]
+LOD macro[0]
+NND $op2
+NND macro[1]
+NOT ACC
+STR $dest"""
+
+
+#larger binary operation macros
+
 binMac["ADD8"] = """\
-LOD lit[0]
+ADD $op1[1] $op2[1] INTO $dest[1]
+ADDC $op1[0] $op2[0] INTO $dest[0]"""
+
+binMac["ADD16"] = """\
+ADD $op1[3] $op2[3] INTO $dest[3]
+ADDC $op1[2] $op2[2] INTO $dest[2]
 ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
+
+binMac["ADD32"] = """\
+ADD $op1[7] $op2[7] INTO $dest[7]
+ADDC $op1[6] $op2[6] INTO $dest[6]
+ADDC $op1[5] $op2[5] INTO $dest[5]
+ADDC $op1[4] $op2[4] INTO $dest[4]
+ADDC $op1[3] $op2[3] INTO $dest[3]
+ADDC $op1[2] $op2[2] INTO $dest[2]
+ADDC $op1[1] $op2[1] INTO $dest[1]
+ADDC $op1[0] $op2[0] INTO $dest[0]"""
+
+binMac["ADD64"] = """\
+ADD $op1[F] $op2[F] INTO $dest[F]
+ADDC $op1[E] $op2[E] INTO $dest[E]
+ADDC $op1[D] $op2[D] INTO $dest[D]
+ADDC $op1[C] $op2[C] INTO $dest[C]
+ADDC $op1[B] $op2[B] INTO $dest[B]
+ADDC $op1[A] $op2[A] INTO $dest[A]
+ADDC $op1[9] $op2[9] INTO $dest[9]
+ADDC $op1[8] $op2[8] INTO $dest[8]
+ADDC $op1[7] $op2[7] INTO $dest[7]
+ADDC $op1[6] $op2[6] INTO $dest[6]
+ADDC $op1[5] $op2[5] INTO $dest[5]
+ADDC $op1[4] $op2[4] INTO $dest[4]
+ADDC $op1[3] $op2[3] INTO $dest[3]
+ADDC $op1[2] $op2[2] INTO $dest[2]
+ADDC $op1[1] $op2[1] INTO $dest[1]
+ADDC $op1[0] $op2[0] INTO $dest[0]"""
+
+binMac["SUB8"] = """\
+NEG8 $op2 INTO macro[3]
+ADD8 $op1 macro[3] INTO $dest"""
+
+binMac["SUB16"] = """\
+NEG16 $op2 INTO macro[5]
+ADD16 $op1 macro[5] INTO $dest"""
+
+binMac["SUB32"] = """\
+NEG32 $op2 INTO macro[9]
+ADD32 $op1 macro[9] INTO $dest"""
+
+binMac["SUB64"] = """\
+NEG64 $op2 INTO macro[11]
+ADD64 $op1 macro[11] INTO $dest"""
+
+binMac["NAND8"] = """\
+NAND $op1[0] $op2[0] INTO $dest[0]
+NAND $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["NAND16"] = """\
+NAND8 $op1[0] $op2[0] INTO $dest[0]
+NAND8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["NAND32"] = """\
+NAND16 $op1[0] $op2[0] INTO $dest[0]
+NAND16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["NAND64"] = """\
+NAND32 $op1[0] $op2[0] INTO $dest[0]
+NAND32 $op1[8] $op2[8] INTO $dest[8]"""
+
+binMac["AND8"] = """\
+AND $op1[0] $op2[0] INTO $dest[0]
+AND $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["AND16"] = """\
+AND8 $op1[0] $op2[0] INTO $dest[0]
+AND8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["AND32"] = """\
+AND16 $op1[0] $op2[0] INTO $dest[0]
+AND16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["AND64"] = """\
+AND32 $op1[0] $op2[0] INTO $dest[0]
+AND32 $op1[8] $op2[8] INTO $dest[8]"""
+
+binMac["OR8"] = """\
+OR $op1[0] $op2[0] INTO $dest[0]
+OR $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["OR16"] = """\
+OR8 $op1[0] $op2[0] INTO $dest[0]
+OR8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["OR32"] = """\
+OR16 $op1[0] $op2[0] INTO $dest[0]
+OR16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["OR64"] = """\
+OR32 $op1[0] $op2[0] INTO $dest[0]
+OR32 $op1[8] $op2[8] INTO $dest[8]"""
+
+binMac["NOR8"] = """\
+NOR $op1[0] $op2[0] INTO $dest[0]
+NOR $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["NOR16"] = """\
+NOR8 $op1[0] $op2[0] INTO $dest[0]
+NOR8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["NOR32"] = """\
+NOR16 $op1[0] $op2[0] INTO $dest[0]
+NOR16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["NOR64"] = """\
+NOR32 $op1[0] $op2[0] INTO $dest[0]
+NOR32 $op1[8] $op2[8] INTO $dest[8]"""
+
+binMac["XOR8"] = """\
+XOR $op1[0] $op2[0] INTO $dest[0]
+XOR $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["XOR16"] = """\
+XOR8 $op1[0] $op2[0] INTO $dest[0]
+XOR8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["XOR32"] = """\
+XOR16 $op1[0] $op2[0] INTO $dest[0]
+XOR16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["XOR64"] = """\
+XOR32 $op1[0] $op2[0] INTO $dest[0]
+XOR32 $op1[8] $op2[8] INTO $dest[8]"""
+
+binMac["XNOR8"] = """\
+XNOR $op1[0] $op2[0] INTO $dest[0]
+XNOR $op1[1] $op2[1] INTO $dest[1]"""
+
+binMac["XNOR16"] = """\
+XNOR8 $op1[0] $op2[0] INTO $dest[0]
+XNOR8 $op1[2] $op2[2] INTO $dest[2]"""
+
+binMac["XNOR32"] = """\
+XNOR16 $op1[0] $op2[0] INTO $dest[0]
+XNOR16 $op1[4] $op2[4] INTO $dest[4]"""
+
+binMac["XNOR64"] = """\
+XNOR32 $op1[0] $op2[0] INTO $dest[0]
+XNOR32 $op1[8] $op2[8] INTO $dest[8]"""
+
+#jump macros, 4-bit
+jmpMac = dict()
+
+jmpMac["JMPEQ"] = """\
+XOR $op1 $op2 INTO macro[0]
+LOD macro[0]
+JMP $dest"""
+
+jmpMac["JMPNE"] = """\
+XOR $op1 $op2 INTO macro[0]
+LOGNOT ACC
+JMP $dest"""
+
+jmpMac["JMPG"] = """\
+LOD $op1
+NEG ACC
+ADD $op2
+GETCMP ACC
+LOGNOT ACC
+JMP $dest"""
+
+jmpMac["JMPGE"] = """\
+LOD $op2
+NEG ACC
+ADD $op1
+GETCMP ACC
+JMP $dest"""
+
+jmpMac["JMPL"] = """\
+LOD $op2
+NEG ACC
+ADD $op1
+GETCMP ACC
+LOGNOT ACC
+JMP $dest"""
+
+jmpMac["JMPLE"] = """\
+LOD $op1
+NEG ACC
+ADD $op2
+GETCMP ACC
+JMP $dest"""
+
+
 
 
 
