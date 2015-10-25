@@ -11,6 +11,7 @@ import os
 	#native NK opcodes so we can identify them
 opcodes = ["ADD", "NND", "LOD", "STR", "HLT", "CXA", "NOP", "JMP"]
 unaryOpcodes = ["NOP", "CXA", "HLT"]
+metaInstructions = ["INF", "PINF", "EPINF", "EINF", "BADR", "DSEC", "DNUM", "DSIZE"]
 
 	#assembler-supported data type labels
 dataTypes = [".data", ".ascii", ".asciiz"]
@@ -21,8 +22,9 @@ dataTypes = [".data", ".ascii", ".asciiz"]
 	#altered in replaceLabels, if macro memory is needed.
 memUsed = 0
 
-#output buffer - holds only fully macro-expanded code
-output = []
+	#boolean variable to keep track of program structure.
+	#helps enforce the rule about no instructions after data.
+DataFields = False
 
 
 # The real heart of the operation - identifies macros anywhere,
@@ -67,6 +69,8 @@ def isFallthroughLine(splitline):
 		return True
 	elif isData(splitline):
 		return True
+	elif isMetaData(splitline):
+		return True
 	else:
 		return False
 
@@ -81,8 +85,12 @@ def isBlankOrComment(splitline):
 #checks if it's native ASM.
 def isNativeASM(splitline):
 	if len(splitline) == 2 and splitline[0] in opcodes:
+		if DataFields:
+			structurefail(splitline)
 		return True
 	elif len(splitline) == 1 and splitline[0] in unaryOpcodes:
+		if DataFields:
+			structurefail(splitline)
 		return True
 	else:
 		return False
@@ -94,11 +102,20 @@ def isSoleLabel(splitline):
 	else:
 		return False
 
+def isMetaData(splitline):
+	if len(splitline) in [1,2] and splitline[0] in metaInstructions:
+		return True
+	else:
+		return False
+
 #checks if it's a data declaration, possibly with label
 def isData(splitline):
+	global DataFields
 	if len(splitline) > 1 and splitline[0] in dataTypes:
+		DataFields = True
 		return True
 	elif len(splitline) > 2 and splitline[1] in dataTypes:
+		DataFields = True
 		return True
 	else:
 		return False
@@ -133,7 +150,12 @@ def isJumpMacro(splitline):
 
 #complains when it can't figure out what you're saying
 def syntaxfail(errorline):
-	raise Exception("Syntax Error", " ".join(errorline))
+	raise Exception("Syntax Error!", " ".join(errorline))
+
+#complains when you put data in front of instructions
+def structurefail(errorline):
+	raise Exception("Structural Error: Instructions cannot be placed after data fields!",
+		" ".join(errorline))
 
 
 #replacement functions - expand those macros!

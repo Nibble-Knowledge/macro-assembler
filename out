@@ -84,11 +84,144 @@ ADD dest[0]
 STR dest[0]
 
 #test addition
-#ADD8 num othernum INTO sum
+LOD num[1]
+ADD othernum[1]
+STR sum[1]
+CXA 0
+NND N_[1]
+NND N_[F]
+ADD num[0]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD othernum[0]
+STR sum[0]
+CXA
+NND N_[1]
+NND macro[0]
 
 #subtraction uses lots of macro memory
-#SUB32 firstop secondop INTO dest
+LOD secondop[0]
+NND N_[F]
+STR macro[3]
+LOD secondop[1]
+NND N_[F]
+STR macro[4]
+LOD secondop[2]
+NND N_[F]
+STR macro[5]
+LOD secondop[3]
+NND N_[F]
+STR macro[6]
+LOD secondop[4]
+NND N_[F]
+STR macro[7]
+LOD secondop[5]
+NND N_[F]
+STR macro[8]
+LOD secondop[6]
+NND N_[F]
+STR macro[9]
+LOD secondop[7]
+NND N_[F]
+STR macro[a]
+LOD N_[1]
+ADD firstop[7]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[a]
+STR dest[7]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[6]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[9]
+STR dest[6]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[5]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[8]
+STR dest[5]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[4]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[7]
+STR dest[4]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[3]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[6]
+STR dest[3]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[2]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[5]
+STR dest[2]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[1]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[4]
+STR dest[1]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[0]
+ADD macro[3]
+STR dest[0]
 
 ;alternate comment syntax
 ;jump macros?
-#JMPEQ place N_[f] TO label
+LOD place[0]
+NND N_[f]
+STR macro[0]
+NND place[0]
+STR macro[1]
+LOD macro[0]
+NND N_[f]
+NND macro[1]
+STR macro[0]
+LOD macro[0]
+JMP label[0]
+;memory space used by macros
+macro: .data 11
+
