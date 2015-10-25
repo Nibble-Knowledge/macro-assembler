@@ -15,6 +15,7 @@ LROT	- left rotate by 1, filling LSB with old MSB
 MOV		- copies memory, without altering it
 NOT		- bitwise complement
 NEG		- 2's complement negation
+INC		- Increment (add 1).
 LSHIFT	- left shift by 1
 LROT	- left rotate by 1
 
@@ -42,13 +43,13 @@ JMPLE	- jump if mem1 less or equal to mem2, signed
 
 To simplify the core of the macro expander, certain constraints
 have been placed on syntax. In general, only one statement can
-be on each line. User-defined labels shown in code
-must be on a line with nothing else, and must start with an
-underscore and end with a colon ("_myLabel:", for instance).
-Line comments are marked with a leading hash ('#'), and cannot
-be on the same line as anything else.
+be on each line. User-defined jump labels shown in code
+must be on a line with nothing else, and must end with a colon
+("myLabel:", for instance). Labels can, however, share a line
+with a data field declaration. Line comments are marked with a 
+leading hash ('#'), and cannot be on the same line as anything else.
 
-Blank lines and line comment are both unaltered by this program,
+Blank lines and line comments are both unaltered by this program,
 meaning that the output code will be slightly easier to read and
 debug. This was done not only for your benefit, but also for mine.
 Allowing comments to pass through means that I will have a much
@@ -88,5 +89,17 @@ ADDC	- binary macro. Requires that ACC hold previous carry.
 
 PROPCARR- unary macro. Adds the carry bit from STAT to the first
 		operand, and stores the result in the second operand.
+
+	Absurd Levels of Detail - these are still somewhat volatile
+
+Not all math macros leave the status register in a useful state.
+In fact, it's safe to assume multi-nibble ones don't. Instead,
+some of them leave a carry in the ACC. Here's a list of macros
+that (in 8-bit or larger) leave a carry in ACC:
+
+ADD 
+INC 
+NEG 
+LSHIFT (but not LROT)
 
 

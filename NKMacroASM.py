@@ -10,8 +10,16 @@ import os
 	
 	#native NK opcodes so we can identify them
 opcodes = ["ADD", "NND", "LOD", "STR", "HLT", "CXA", "NOP", "JMP"]
+unaryOpcodes = ["NOP", "CXA", "HLT"]
+
+	#assembler-supported data type labels
+dataTypes = [".data", ".ascii", ".asciiz"]
 
 #global variables
+
+	#macro memory used. Added so we can declare the right quantity.
+	#altered in replaceLabels, if macro memory is needed.
+memUsed = 0
 
 #output buffer - holds only fully macro-expanded code
 output = []
@@ -27,13 +35,7 @@ output = []
 def expandline(splitline):
 	expLine = []
 
-	if isBlankOrComment(splitline): #the base case for non-code lines
-		expLine.append(" ".join(splitline))
-
-	elif isNativeASM(splitline):	#the base case for code lines
-		expLine.append(" ".join(splitline))
-
-	elif isJumpLabel(splitline):	#the base case for jump labels
+	if isFallthroughLine(splitline): #the base case - encompasses several other cases
 		expLine.append(" ".join(splitline))
 
 	elif isAccMacro(splitline):
@@ -55,65 +57,89 @@ def expandline(splitline):
 
 #boolean functions - for identifying macros and syntax errors
 
-
-#blank or comment lines fall through unchanged - call first
-def isBlankOrComment(splitline):
-	if len(splitline) == 0 or splitline[0][0] == '#':
+#all the base cases return true on this line
+def isFallthroughLine(splitline):
+	if isBlankOrComment(splitline):
+		return True
+	elif isNativeASM(splitline):
+		return True
+	elif isSoleLabel(splitline):
+		return True
+	elif isData(splitline):
 		return True
 	else:
 		return False
 
-#checks if it's native ASM. Call after isBlankOrComment, but before checking
-#for actual macros
+
+#blank or comment lines fall through unchanged
+def isBlankOrComment(splitline):
+	if len(splitline) == 0 or splitline[0][0] == '#' or splitline[0][0] == ";":
+		return True
+	else:
+		return False
+
+#checks if it's native ASM.
 def isNativeASM(splitline):
 	if len(splitline) == 2 and splitline[0] in opcodes:
 		return True
+	elif len(splitline) == 1 and splitline[0] in unaryOpcodes:
+		return True
 	else:
 		return False
 
-#checks if it fits the standard jump label syntax
-def isJumpLabel(splitline):
-	if len(splitline) == 1 and splitline[0][0] == '_' and splitline[0][-1] == ':'
+#checks if it fits the standard label syntax, alone on a line
+def isSoleLabel(splitline):
+	if len(splitline) == 1 and splitline[0][-1] == ':':
 		return True
-	else
+	else:
 		return False
 
-#if it's not a comment or native ASM, anything with 2 tokens is an acc macro
+#checks if it's a data declaration, possibly with label
+def isData(splitline):
+	if len(splitline) > 1 and splitline[0] in dataTypes:
+		return True
+	elif len(splitline) > 2 and splitline[1] in dataTypes:
+		return True
+	else:
+		return False
+
+#detects accumulator-based macros
 def isAccMacro(splitline):
 	if len(splitline) == 2 and splitline[0] in accMac and splitline[1] == "ACC":
 		return True
 	else:
 		return False
 
-#if not a comment or native ASM, anything with 4 tokens is a unary macro
+#detects unary operation macros
 def isUnaryMacro(splitline):
 	if len(splitline) == 4 and splitline[0] in unaMac and splitline[2] == "INTO":
 		return True		
 	else:
 		return False
 
-#if not a comment, anything with 5 tokens is and "INTO" is a binary macro
+#detects binary operation macros
 def isBinaryMacro(splitline):
 	if len(splitline) == 5 and splitline[0] in binMac and splitline[3] == "INTO":
 		return True
 	else:
 		return False
 
-#if not a comment, anything with 5 tokens and "TO" is a jump macro
+#detects jump macros
 def isJumpMacro(splitline):
-	if len(splitline) == 5 and splitline[0] in jmpMac and splitline[3] = "TO":
+	if len(splitline) == 5 and splitline[0] in jmpMac and splitline[3] == "TO":
 		return True
 	else:
 		return False
 
-
+#complains when it can't figure out what you're saying
 def syntaxfail(errorline):
-	raise Exception("Syntax Error", " ".join(errorLine))
+	raise Exception("Syntax Error", " ".join(errorline))
+
 
 #replacement functions - expand those macros!
 
 
-# the simplest expasion function, since no acc macro
+# The simplest expasion function, since no acc macro
 # takes any arguments. Some might contain other macros
 # though, so we still need to check
 
@@ -125,6 +151,10 @@ def expandAccMacro(inMac):
 	for line in accMac[inMac[0]].splitlines():
 		outlines.extend(expandline(line.split()))
 	return outlines
+
+# Really the only difference between unary and binary is
+# the number of arguments. That's why the functions are
+# almost identical.
 
 #Takes: a split line
 #Returns: a list of (joined) lines
@@ -164,6 +194,12 @@ def expandBinaryMacro(inMac):
 		outlines.extend(expandline(splitline))
 	return outlines
 
+# Frankly, this is no different from the operation macros.
+# I just split them into different dictionaries for ease of
+# coding and maintenance. The only cost of that decision was
+# having to write this function, which is basically identical
+# to the functions above.
+
 #Takes: a split line
 #Returns: a list of lines
 def expandJumpMacro(inMac):
@@ -184,13 +220,25 @@ def expandJumpMacro(inMac):
 		outlines.extend(expandline(splitline))
 	return outlines
 
+# One of the more complex bits of code in this script, if only
+# because of the amount of string operations involved. Takes 
+# macros and part of their context, and replaces the $-marked
+# placeholder tokens in the macros with the actual labels they
+# should hold. Also does math on memory offsets, so we don't
+# have to define a new label for each nibble of memory. Finally,
+# keeps up the counter on the amount of memory used internal to
+# the macros we're using. This allows us to declare only as much
+# macro scratch space as we need.
+
 #Takes: a split line,
 #		the placeholder (starts with $ usually) label to replace
 #		the new label (maybe with [offset]) to replace it with
 #Also note that the placeholder in the line may also have an offset
 #Returns: a split line
+#Edits: global "memUsed" variable, if necessary
 def replaceLabels(splitline, oldlabel, replabel):
 	outline = []
+	global memUsed
 
 	for token in splitline:
 		if token.startswith(oldlabel):
@@ -224,6 +272,14 @@ def replaceLabels(splitline, oldlabel, replabel):
 			#not the label we're looking for
 			outline.append(token)
 
+		#check if we're using macro memory. If so, we might need to 
+		#expand our macro memory bank.
+		if "macro[" in outline[-1]:
+			macoffset = outline[-1][outline[-1].index('[') + 1 : outline[-1].index(']')]
+			macoffset = int(macoffset, 16)
+			if macoffset > memUsed:
+				memUsed = macoffset
+
 	return outline
 
 
@@ -233,7 +289,7 @@ def replaceLabels(splitline, oldlabel, replabel):
 accMac = dict()
 
 accMac["NOT"] = """\
-NND lit[F]"""
+NND N_[F]"""
 
 accMac["NEG"] = """\
 NOT ACC
@@ -241,19 +297,19 @@ INC ACC"""
 
 accMac["GETCARR"] = """\
 CXA 0
-NND lit[1]
-NND lit[F]"""
+NND N_[1]
+NND N_[F]"""
 
 accMac["GETCMP"] = """\
 CXA 0
-NND lit[8]
-NND lit[F]"""
+NND N_[8]
+NND N_[F]"""
 
 accMac["INC"] = """\
-ADD lit[1]"""
+ADD N_[1]"""
 
 accMac["DEC"] = """\
-ADD lit[F]"""
+ADD N_[F]"""
 
 accMac["LSHIFT"] = """\
 STR macro[0]
@@ -267,11 +323,11 @@ GETCARR ACC
 ADD macro[0]"""
 
 accMac["LOGNOT"] = """\
-ADD lit[F]
+ADD N_[F]
 CXA 0
-NND lit[1]
-NND lit[1]
-NND lit[F]"""
+NND N_[1]
+NND N_[1]
+NND N_[F]"""
 
 
 #unary operation macros - 4-bit versions
@@ -297,14 +353,19 @@ GETCARR ACC
 ADD $op1
 STR $dest"""
 
+unaMac["INC"] = """\
+LOD N_[1]
+ADD $op1
+STR $dest"""
+
 unaMac["LSHIFT"] = """\
-LOD lit[0]
+LOD N_[0]
 ADD $op1
 ADD $op1
 STR $dest"""
 
 unaMac["LROT"] = """\
-LOD lit[0]
+LOD N_[0]
 LSHIFT $op1 INTO $dest
 GETCARR ACC
 ADD $dest
@@ -313,36 +374,36 @@ STR $dest"""
 #unary operation macros - longer versions
 
 unaMac["MOV8"] = """\
-MOV $op1[0] $dest[0]
-MOV $op1[1] $dest[1]"""
+MOV $op1[0] INTO $dest[0]
+MOV $op1[1] INTO $dest[1]"""
 
 unaMac["MOV16"] = """\
-MOV8 $op1[0] $dest[0]
-MOV8 $op1[2] $dest[2]"""
+MOV8 $op1[0] INTO $dest[0]
+MOV8 $op1[2] INTO $dest[2]"""
 
 unaMac["MOV32"] = """\
-MOV16 $op1[0] $dest[0]
-MOV16 $op1[4] $dest[4]"""
+MOV16 $op1[0] INTO $dest[0]
+MOV16 $op1[4] INTO $dest[4]"""
 
 unaMac["MOV64"] = """\
-MOV32 $op1[0] $dest[0]
-MOV32 $op1[8] $dest[8]"""
+MOV32 $op1[0] INTO $dest[0]
+MOV32 $op1[8] INTO $dest[8]"""
 
 unaMac["NOT8"] = """\
-NOT $op1[0] $dest[0]
-NOT $op1[1] $dest[1]"""
+NOT $op1[0] INTO $dest[0]
+NOT $op1[1] INTO $dest[1]"""
 
 unaMac["NOT16"] = """\
-NOT8 $op1[0] $dest[0]
-NOT8 $op1[2] $dest[2]"""
+NOT8 $op1[0] INTO $dest[0]
+NOT8 $op1[2] INTO $dest[2]"""
 
 unaMac["NOT32"] = """\
-NOT16 $op1[0] $dest[0]
-NOT16 $op1[4] $dest[4]"""
+NOT16 $op1[0] INTO $dest[0]
+NOT16 $op1[4] INTO $dest[4]"""
 
 unaMac["NOT64"] = """\
-NOT32 $op1[0] $dest[0]
-NOT32 $op1[8] $dest[8]"""
+NOT32 $op1[0] INTO $dest[0]
+NOT32 $op1[8] INTO $dest[8]"""
 
 unaMac["NEG8"] = """\
 NOT $op1 INTO $dest
@@ -350,30 +411,45 @@ NEG $op1[1] INTO $dest[1]
 PROPCARR $dest INTO $dest"""
 
 unaMac["NEG16"] = """\
-NOT8 $op1 INTO $dest
-NEG8 $op1[2] INTO $dest[2]
-PROPCARR $dest[1] INTO $dest[1]
-PROPCARR $dest[0] INTO $dest[0]"""
+NOT16 $op1 INTO $dest
+INC16 $dest INTO $dest"""
 
 unaMac["NEG32"] = """\
-NOT16 $op1 INTO $dest
-NEG16 $op1[4] INTO $dest[4]
-PROPCARR $dest[3] INTO $dest[3]
-PROPCARR $dest[2] INTO $dest[2]
-PROPCARR $dest[1] INTO $dest[1]
-PROPCARR $dest[0] INTO $dest[0]"""
+NOT32 $op1 INTO $dest
+INC32 $dest INTO $dest"""
 
 unaMac["NEG64"] = """\
-NOT32 $op1 INTO $dest
-NEG32 $op1[8] INTO $dest[8]
-PROPCARR $dest[7] INTO $dest[7]
-PROPCARR $dest[6] INTO $dest[6]
-PROPCARR $dest[5] INTO $dest[5]
-PROPCARR $dest[4] INTO $dest[4]
-PROPCARR $dest[3] INTO $dest[3]
-PROPCARR $dest[2] INTO $dest[2]
-PROPCARR $dest[1] INTO $dest[1]
-PROPCARR $dest[0] INTO $dest[0]"""
+NOT64 $op1 INTO $dest
+INC64 $dest INTO $dest"""
+
+unaMac["INC8"] = """\
+LOD N_[1]
+ADD $op1[1]
+STR $dest[1]
+PROPCARR $op1[0] INTO $dest[0]"""
+
+unaMac["INC16"] = """\
+INC8 $op1[2] INTO $dest[2]
+PROPCARR $op1[1] INTO $dest[1]
+PROPCARR $op1[0] INTO $dest[0]"""
+
+unaMac["INC32"] = """\
+INC16 $op1[4] INTO $dest[4]
+PROPCARR $op1[3] INTO $dest[3]
+PROPCARR $op1[2] INTO $dest[2]
+PROPCARR $op1[1] INTO $dest[1]
+PROPCARR $op1[0] INTO $dest[0]"""
+
+unaMac["INC64"] = """\
+INC32 $op1[8] INTO $dest[8]
+PROPCARR $op1[7] INTO $dest[7]
+PROPCARR $op1[6] INTO $dest[6]
+PROPCARR $op1[5] INTO $dest[5]
+PROPCARR $op1[4] INTO $dest[4]
+PROPCARR $op1[3] INTO $dest[3]
+PROPCARR $op1[2] INTO $dest[2]
+PROPCARR $op1[1] INTO $dest[1]
+PROPCARR $op1[0] INTO $dest[0]"""
 
 unaMac["LSHIFT8"] = """\
 ADD8 $op1 $op1 INTO $dest"""
@@ -389,25 +465,21 @@ ADD64 $op1[0] $op1[0] INTO $dest[0]"""
 
 unaMac["LROT8"] = """\
 LSHIFT8 $op1 INTO $dest
-GETCARR ACC
 ADD $dest[1]
 STR $dest[1]"""
 
 unaMac["LROT16"] = """\
 LSHIFT16 $op1 INTO $dest
-GETCARR ACC
 ADD $dest[3]
 STR $dest[3]"""
 
 unaMac["LROT32"] = """\
 LSHIFT32 $op1 INTO $dest
-GETCARR ACC
 ADD $dest[7]
 STR $dest[7]"""
 
 unaMac["LROT64"] = """\
 LSHIFT64 $op1 INTO $dest
-GETCARR ACC
 ADD $dest[F]
 STR $dest[F]"""
 
@@ -423,14 +495,14 @@ STR $dest"""
 binMac["ADDC"] = """\
 ADD $op1
 STR macro[1]
-GETCARR ACC
-NOT ACC
+CXA
+NND N_[1]
 STR macro[0]
 LOD macro[1]
 ADD $op2
 STR $dest
-GETCARR ACC
-NOT ACC
+CXA
+NND N_[1]
 NND macro[0]"""
 
 binMac["SUB"] = """\
@@ -493,33 +565,23 @@ STR $dest"""
 
 binMac["ADD8"] = """\
 ADD $op1[1] $op2[1] INTO $dest[1]
+GETCARR ACC
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD16"] = """\
-ADD $op1[3] $op2[3] INTO $dest[3]
-ADDC $op1[2] $op2[2] INTO $dest[2]
+ADD8 $op1[3] $op2[3] INTO $dest[3]
 ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD32"] = """\
-ADD $op1[7] $op2[7] INTO $dest[7]
-ADDC $op1[6] $op2[6] INTO $dest[6]
-ADDC $op1[5] $op2[5] INTO $dest[5]
-ADDC $op1[4] $op2[4] INTO $dest[4]
+ADD16 $op1[7] $op2[7] INTO $dest[7]
 ADDC $op1[3] $op2[3] INTO $dest[3]
 ADDC $op1[2] $op2[2] INTO $dest[2]
 ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD64"] = """\
-ADD $op1[F] $op2[F] INTO $dest[F]
-ADDC $op1[E] $op2[E] INTO $dest[E]
-ADDC $op1[D] $op2[D] INTO $dest[D]
-ADDC $op1[C] $op2[C] INTO $dest[C]
-ADDC $op1[B] $op2[B] INTO $dest[B]
-ADDC $op1[A] $op2[A] INTO $dest[A]
-ADDC $op1[9] $op2[9] INTO $dest[9]
-ADDC $op1[8] $op2[8] INTO $dest[8]
+ADD32 $op1[F] $op2[F] INTO $dest[F]
 ADDC $op1[7] $op2[7] INTO $dest[7]
 ADDC $op1[6] $op2[6] INTO $dest[6]
 ADDC $op1[5] $op2[5] INTO $dest[5]
@@ -530,20 +592,58 @@ ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["SUB8"] = """\
-NEG8 $op2 INTO macro[3]
-ADD8 $op1 macro[3] INTO $dest"""
+NOT8 $op2 INTO macro[3]
+LOD N_[1]
+ADDC $op1[1] macro[4] INTO $dest[1]
+ADD $op1[0]
+ADD macro[3]
+STR $dest[0]"""
 
 binMac["SUB16"] = """\
-NEG16 $op2 INTO macro[5]
-ADD16 $op1 macro[5] INTO $dest"""
+NOT16 $op2 INTO macro[3]
+LOD N_[1]
+ADDC $op1[3] macro[6] INTO $dest[3]
+ADDC $op1[2] macro[5] INTO $dest[2]
+ADDC $op1[1] macro[4] INTO $dest[1]
+ADD $op1[0]
+ADD macro[3]
+STR $dest[0]"""
 
 binMac["SUB32"] = """\
-NEG32 $op2 INTO macro[9]
-ADD32 $op1 macro[9] INTO $dest"""
+NOT32 $op2 INTO macro[3]
+LOD N_[1]
+ADDC $op1[7] macro[A] INTO $dest[7]
+ADDC $op1[6] macro[9] INTO $dest[6]
+ADDC $op1[5] macro[8] INTO $dest[5]
+ADDC $op1[4] macro[7] INTO $dest[4]
+ADDC $op1[3] macro[6] INTO $dest[3]
+ADDC $op1[2] macro[5] INTO $dest[2]
+ADDC $op1[1] macro[4] INTO $dest[1]
+ADD $op1[0]
+ADD macro[3]
+STR $dest[0]"""
 
 binMac["SUB64"] = """\
-NEG64 $op2 INTO macro[11]
-ADD64 $op1 macro[11] INTO $dest"""
+NOT64 $op2 INTO macro[3]
+LOD N_[1]
+ADDC $op1[F] macro[12] INTO $dest[F]
+ADDC $op1[E] macro[11] INTO $dest[E]
+ADDC $op1[D] macro[10] INTO $dest[D]
+ADDC $op1[C] macro[F] INTO $dest[C]
+ADDC $op1[B] macro[E] INTO $dest[B]
+ADDC $op1[A] macro[D] INTO $dest[A]
+ADDC $op1[9] macro[C] INTO $dest[9]
+ADDC $op1[8] macro[B] INTO $dest[8]
+ADDC $op1[7] macro[A] INTO $dest[7]
+ADDC $op1[6] macro[9] INTO $dest[6]
+ADDC $op1[5] macro[8] INTO $dest[5]
+ADDC $op1[4] macro[7] INTO $dest[4]
+ADDC $op1[3] macro[6] INTO $dest[3]
+ADDC $op1[2] macro[5] INTO $dest[2]
+ADDC $op1[1] macro[4] INTO $dest[1]
+ADD $op1[0]
+ADD macro[3]
+STR $dest[0]"""
 
 binMac["NAND8"] = """\
 NAND $op1[0] $op2[0] INTO $dest[0]
@@ -686,7 +786,11 @@ JMP $dest"""
 
 
 
-
+# I know it looks weird having the main function hide
+# all the way down here, but it avoids the need to
+# force the interpreter to load all the other stuff
+# first. Besides, a good main function is usually
+# pretty sparse.
 
 #main function
 
@@ -706,6 +810,10 @@ for line in inFile.readlines():
 	expandedLine = expandline(line.split())
 	for expLine in expandedLine:
 		outFile.write(expLine + "\n")
+
+if memUsed > 0:
+	outFile.write(";memory space used by macros\n")
+	outFile.write("macro: .data " + str(memUsed + 1) + "\n\n")
 
 inFile.close()
 outFile.close()
