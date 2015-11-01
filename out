@@ -219,8 +219,8 @@ STR macro[1]
 LOD macro[0]
 NND N_[f]
 NND macro[1]
-STR macro[0]
-LOD macro[0]
+STR macro[2]
+LOD macro[2]
 JMP label[0]
 ;memory space used by macros
 macro: .data 11
