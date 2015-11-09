@@ -34,6 +34,12 @@ ADD8 num othernum INTO sum
 #subtraction uses lots of macro memory
 SUB32 firstop secondop INTO dest
 
+#Addressing operations?
+MOVADDR place[3] INTO somewhere
+
+#and again
+MOVADDR somewhere INTO place[3]
+
 ;alternate comment syntax
 ;jump macros?
 JMPEQ place N_[f] TO label

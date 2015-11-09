@@ -209,6 +209,26 @@ ADD firstop[0]
 ADD macro[3]
 STR dest[0]
 
+#Addressing operations?
+LOD &(place[3])[0]
+STR somewhere[0]
+LOD &(place[3])[1]
+STR somewhere[1]
+LOD &(place[3])[2]
+STR somewhere[2]
+LOD &(place[3])[3]
+STR somewhere[3]
+
+#and again
+LOD &(somewhere[0])[0]
+STR place[3]
+LOD &(somewhere[0])[1]
+STR place[4]
+LOD &(somewhere[0])[2]
+STR place[5]
+LOD &(somewhere[0])[3]
+STR place[6]
+
 ;alternate comment syntax
 ;jump macros?
 LOD place[0]

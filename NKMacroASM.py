@@ -158,6 +158,10 @@ def structurefail(errorline):
 	raise Exception("Structural Error: Instructions cannot be placed after data fields!",
 		" ".join(errorline))
 
+#complains when you ask for the fifth or greater nibble of an address
+def addroffsetfail(errortoken):
+	raise Exception("Addressing Error: Addresses are only four nibbles long!", errortoken)
+
 
 #replacement functions - expand those macros!
 
@@ -191,6 +195,7 @@ def expandUnaryMacro(inMac):
 	
 		#replace our placeholder labels with the input ones
 		splitline = replaceLabels(splitline, "$op1", op1)
+		splitline = replaceLabels(splitline, "&op1", op1)
 		splitline = replaceLabels(splitline, "$dest", dest)
 
 		#recursively expand the resulting line
@@ -254,7 +259,7 @@ def expandJumpMacro(inMac):
 # macro scratch space as we need.
 
 #Takes: a split line,
-#		the placeholder (starts with $) label to replace
+#		the placeholder (starts with $ or maybe &) label to replace
 #		the new label (maybe with [offset]) to replace it with
 #Also note that the placeholder in the line may also have an offset
 #Returns: a split line
@@ -264,33 +269,11 @@ def replaceLabels(splitline, oldlabel, replabel):
 	global memUsed
 
 	for token in splitline:
-		if token.startswith(oldlabel):
-
-			#default values, if no offset found
-			oldoffset = 0
-			repoffset = 0
-
-			#get the offset from the replacement, if necessary
-			if '[' in replabel and ']' in replabel:
-				repoffset = replabel[replabel.index('[') + 1 : replabel.index(']')]
-				repoffset = int(repoffset, 16)
-
-			#and from the old label, if necessary
-			if '[' in token and ']' in token:
-				oldoffset = token[token.index('[') + 1 : token.index(']')]
-				oldoffset = int(oldoffset, 16)
-			
-			#add them together
-			newoffset = oldoffset + repoffset
-
-			#smash together the new token
-			if '[' in replabel:
-				newtoken = replabel[:replabel.find('[')] + '[' + hex(newoffset)[2:] + ']'
-			else:
-				newtoken = replabel + '[' + hex(newoffset)[2:] + ']'
-
-			#put it in the output line
-			outline.append(newtoken)
+		#put it in the output line, adapted
+		if token.startswith(oldlabel) and "$" in oldlabel:
+			outline.append(reptoken(token, replabel))
+		elif token.startswith(oldlabel) and "&" in oldlabel:
+			outline.append(repaddress(token, replabel))
 		else:
 			#not the label we're looking for
 			outline.append(token)
@@ -305,6 +288,66 @@ def replaceLabels(splitline, oldlabel, replabel):
 
 	return outline
 
+#Takes:	The token to replace (maybe with offset, starts with $)
+#		The new label to replace things with
+#Returns:
+#		A new token, with calculate labels
+#Assumes:
+#		If replabel or token uses the "&" syntax, it already has
+#		the trailing [] present, as &(label[A])[B] but definitely
+#		not &(label[A]). This is always the case if this program
+#		applied the "&" syntax itself; users might break things.
+def reptoken(token, replabel):
+	#default values, if no offset found
+	oldoffset = 0
+	repoffset = 0
+
+	#get the offset from the replacement, if necessary
+	if '[' in replabel and ']' in replabel:
+		repoffset = replabel[replabel.rindex('[') + 1 : replabel.rindex(']')]
+		repoffset = int(repoffset, 16)
+
+	#and from the old label, if necessary
+	if '[' in token and ']' in token:
+		oldoffset = token[token.rindex('[') + 1 : token.rindex(']')]
+		oldoffset = int(oldoffset, 16)
+			
+	#add them together
+	newoffset = oldoffset + repoffset
+
+	#smash together the new token
+	if '[' in replabel:
+		newtoken = replabel[:replabel.rfind('[')] + '[' + hex(newoffset)[2:] + ']'
+	else:
+		newtoken = replabel + '[' + hex(newoffset)[2:] + ']'
+
+	if '&' in newtoken and newoffset > 3:
+		addroffsetfail(newtoken)
+		
+	return newtoken
+
+#Takes: 	A token to replace (maybe with offset in [0:4], starts with &)
+#			A label to replace it with (completely unrelated offset, not already using &)
+#Returns:	A token formed as &(replabel[repoffset])[tokenoffset]
+def repaddress(token, replabel):
+	repoffset = 0
+	addroffset = 0
+
+	#get the offset from the replacement, if necessary
+	if '[' in replabel and ']' in replabel:
+		repoffset = replabel[replabel.index('[') + 1 : replabel.index(']')]
+		repoffset = int(repoffset, 16)
+		replabel = replabel[:replabel.find('[')]
+
+	#and from the old label, if necessary
+	if '[' in token and ']' in token:
+		addroffset = token[token.index('[') + 1 : token.index(']')]
+		addroffset = int(addroffset, 16)
+		token = token[:token.find('[')]
+
+	#assemble new token
+	newtoken = "&(" + replabel + '[' + hex(repoffset)[2:] + "])[" + hex(addroffset)[2:] + ']'
+	return newtoken
 
 #macros for expansion
 
@@ -393,6 +436,16 @@ LSHIFT $op1 INTO $dest
 GETCARR ACC
 ADD $dest
 STR $dest"""
+
+unaMac["MOVADDR"] = """\
+LOD &op1[0]
+STR $dest[0]
+LOD &op1[1]
+STR $dest[1]
+LOD &op1[2]
+STR $dest[2]
+LOD &op1[3]
+STR $dest[3]"""
 
 #unary operation macros - longer versions
 
