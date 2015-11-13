@@ -395,6 +395,12 @@ NND N_[1]
 NND N_[1]
 NND N_[F]"""
 
+accMac["SIGNEX"] = """\
+ADD N_[8]
+CXA 0
+NND N_[1]
+ADD N_[1]"""
+
 
 #unary operation macros - 4-bit versions
 

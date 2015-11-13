@@ -9,6 +9,7 @@ INC		- increments (adds 1)
 DEC		- decrements (subtracts 1)
 LSHIFT	- left shift by 1, filling LSB with 0.
 LROT	- left rotate by 1, filling LSB with old MSB
+SIGNEX	- if MSB is 1, puts F into ACC. Otherwise, puts 0 into ACC.
 
 	Normal Unary Macros (OPCODE mem1 INTO mem2)
 
@@ -34,10 +35,6 @@ XNOR	- bitwise XNOR
 
 JMPEQ	- jump if memory locations hold equal contents
 JMPNE	- jump if memory locations hold different contents
-JMPG	- jump if mem1 strictly greater than mem2, signed
-JMPGE	- jump if mem1 greater or equal to mem2, signed
-JMPL	- jump if mem1 strictly less than mem2, signed
-JMPLE	- jump if mem1 less or equal to mem2, signed
 
 	Syntactic Requirements
 
@@ -47,7 +44,8 @@ be on each line. User-defined jump labels shown in code
 must be on a line with nothing else, and must end with a colon
 ("myLabel:", for instance). Labels can, however, share a line
 with a data field declaration. Line comments are marked with a 
-leading hash ('#'), and cannot be on the same line as anything else.
+leading hash ('#') or semicolon (';'), and cannot be on the 
+same line as anything else.
 
 Blank lines and line comments are both unaltered by this program,
 meaning that the output code will be slightly easier to read and
@@ -70,12 +68,11 @@ value) in memory. For instance, if place[0] has previously been
 used to MOV16 the value 0xC0DE, then place [2] now holds the
 value "D".
 
-Certain macros will have signed and unsigned variations. In particular,
-comparison macros will (when I add them) have unsigned variations
-accessible by (for instance) JMPUGE, adding a U after the JMP
-part of the opcode. Also, multiplication will need signed and
-unsigned variants, as will division and modulus when I get around
-to those.
+The &(label[A])[B] syntax is supported by this program, but with
+the requirement that both offsets be present at all times, even if
+their values are 0. If the second offset has a value greater than 3,
+this will cause a syntax error, as this indicates the fifth (or greater)
+bit of an address, which is meaningless.
 
 	Special Macros
 
@@ -89,6 +86,9 @@ ADDC	- binary macro. Requires that ACC hold previous carry.
 
 PROPCARR- unary macro. Adds the carry bit from STAT to the first
 		operand, and stores the result in the second operand.
+
+MOVADDR	- puts address of mem1 into mem2 (as C '&' operator). No
+		variants available, but very useful for subroutine calls.
 
 	Absurd Levels of Detail - these are still somewhat volatile
 
