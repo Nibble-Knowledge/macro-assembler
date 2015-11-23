@@ -90,6 +90,19 @@ PROPCARR- unary macro. Adds the carry bit from STAT to the first
 MOVADDR	- puts address of mem1 into mem2 (as C '&' operator). No
 		variants available, but very useful for subroutine calls.
 
+	File Inclusion
+
+We can now handle file inclusion. Files are opened and expanded
+in a breadth-first recursive manner, automatically ignoring any
+repeated files. Files can be included by using an INCL opcode
+followed by a valid filepath to the new file. Files will be 
+concatenated in a way that keeps each code section intact, as
+well as keeping each data section intact. It will, however, cause
+other code and/or data to be inserted between the last instruction
+in the file and the first data declaration in the file. Comments
+are generated in a way that allows easy traceability of which file
+a particular line of code originated from.
+
 	Absurd Levels of Detail - these are still somewhat volatile
 
 Not all math macros leave the status register in a useful state.
