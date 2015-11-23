@@ -26,6 +26,17 @@ memUsed = 0
 	#helps enforce the rule about no instructions after data.
 DataFields = False
 
+	#Buffer for output instructions
+IBuffer = []
+
+	#Buffer for output data
+DBuffer = []
+
+
+	#List, treated as a queue, of files to handle
+FList = []
+FIndex = 0
+
 
 # The real heart of the operation - identifies macros anywhere,
 # including inside other macros! Tends to get called recursively
@@ -39,6 +50,9 @@ def expandline(splitline):
 
 	if isFallthroughLine(splitline): #the base case - encompasses several other cases
 		expLine.append(" ".join(splitline))
+
+	elif isIncludeStatement(splitline):
+		expLine.append(handleInclude(splitline))
 
 	elif isAccMacro(splitline):
 		expLine.extend(expandAccMacro(splitline))
@@ -117,6 +131,13 @@ def isData(splitline):
 		return True
 	elif len(splitline) > 2 and splitline[1] in dataTypes:
 		DataFields = True
+		return True
+	else:
+		return False
+
+#detects INCL statements
+def isIncludeStatement(splitline):
+	if splitline[0] == "INCL" and len(splitline) == 2:
 		return True
 	else:
 		return False
@@ -348,6 +369,13 @@ def repaddress(token, replabel):
 	#assemble new token
 	newtoken = "&(" + replabel + '[' + hex(repoffset)[2:] + "])[" + hex(addroffset)[2:] + ']'
 	return newtoken
+
+def handleInclude(splitline):
+	if splitline[1] not in FList:
+		FList.append(splitline[1])
+		return ";Included " + splitline[1]
+	else:
+		return ";Ignored repeated include: " + splitline[1]
 
 #macros for expansion
 
@@ -1701,25 +1729,67 @@ if len(sys.argv) < 3:
 	print "no output file specified!"
 	quit()
 
+FList.append(sys.argv[1])
+
 #open the appropriate files
-inFile = open(sys.argv[1], "r")
-print "input file opened: " + sys.argv[1]
 outFile = open(sys.argv[2], "w")
 print "output file opened: " + sys.argv[2]
 
-#use the functions we defined above
-for line in inFile.readlines():
-	expandedLine = expandline(line.split())
-	for expLine in expandedLine:
-		outFile.write(expLine + "\n")
+#deal with files
+while FIndex < len(FList):
+	
+	#first file breaks, everything breaks
+	#other files break, not the worst thing
+	try:
+		inFile = open(FList[FIndex], "r")
+		print "input file opened: " + FList[FIndex]
+	except OSError:
+		if FIndex > 0:
+			print "Serious exception: Included file not opened! " + FList[FIndex] + '\n'
+			print "Proceeding with other files. Output may not be valid.\n"
+		else:
+			print "Fatal exception: Base file not opened!"
+			raise 
+
+	#keep enforcing the organisation with files, but not between them.
+	DataFields = False
+
+	#comments good
+	DBuffer.append("\n;Start of data from " + FList[FIndex] + "\n")
+	IBuffer.append("\n;Start of code from " + FList[FIndex] + "\n")
+	
+	#use the functions we defined above
+	for line in inFile.readlines():
+		expandedLine = expandline(line.split())
+		for expLine in expandedLine:
+			if(DataFields):
+				DBuffer.append(expLine)
+			else:
+				IBuffer.append(expLine)
+	
+	#comments foamy
+	DBuffer.append("\n;End of data from " + FList[FIndex])
+	IBuffer.append("\n;End of code from " + FList[FIndex])
+
+	#housekeeping
+	FIndex += 1
+	inFile.close()
+
+#dump the buffers
+for ILine in IBuffer:
+	outFile.write(ILine + '\n')
+
+outFile.write(";Start of data sections")
+
+for DLine in DBuffer:
+	outFile.write(DLine + '\n')
 
 #declare macro scratch space
 if memUsed > 0:
-	outFile.write(";memory space used by macros\n")
+	outFile.write("\n;memory space used by macros\n")
 	outFile.write("macro: .data " + str(memUsed + 1) + "\n\n")
 
 #clean up after ourselves
-inFile.close()
 outFile.close()
 
 #done!

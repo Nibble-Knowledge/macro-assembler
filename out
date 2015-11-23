@@ -1,3 +1,6 @@
+
+;Start of code from TestNK
+
 #a comment
 NND lit[F]
 NND N_[F]
@@ -8,6 +11,9 @@ ADD N_[1]
 CXA 0
 NND N_[1]
 NND N_[F]
+
+#Test out the include statements!
+;Included TestINCL
 
 #simple acc stuff - being exhaustive in my tests
 ADD N_[1]
@@ -242,6 +248,48 @@ NND macro[1]
 STR macro[2]
 LOD macro[2]
 JMP label[0]
+
+
+
+;End of code from TestNK
+
+;Start of code from TestINCL
+
+#this is from TestINCL!
+LOD &(myData[0])[0]
+STR myPointer[0]
+LOD &(myData[0])[1]
+STR myPointer[1]
+LOD &(myData[0])[2]
+STR myPointer[2]
+LOD &(myData[0])[3]
+STR myPointer[3]
+LOD N_[0]
+JMP myPointer
+
+#recursive includes should NOT break
+;Ignored repeated include: TestNK
+HLT
+
+#TestINCL Data
+
+;End of code from TestINCL
+;Start of data sections
+;Start of data from TestNK
+
+TestData: .data 5
+
+;End of data from TestNK
+
+;Start of data from TestINCL
+
+myData: .data 4
+.data 2
+#more testINCL data
+.data 1
+
+;End of data from TestINCL
+
 ;memory space used by macros
 macro: .data 11
 

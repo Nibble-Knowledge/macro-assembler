@@ -6,6 +6,9 @@ NEG ACC
 #The carry macro
 GETCARR ACC
 
+#Test out the include statements!
+INCL TestINCL
+
 #simple acc stuff - being exhaustive in my tests
 INC ACC
 DEC ACC
@@ -43,3 +46,6 @@ MOVADDR somewhere INTO place[3]
 ;alternate comment syntax
 ;jump macros?
 JMPEQ place N_[f] TO label
+
+
+TestData: .data 5

@@ -1,0 +1,14 @@
+#this is from TestINCL!
+MOVADDR myData INTO myPointer
+LOD N_[0]
+JMP myPointer
+
+#recursive includes should NOT break
+INCL TestNK
+HLT
+
+#TestINCL Data
+myData: .data 4
+.data 2
+#more testINCL data
+.data 1 
