@@ -11,7 +11,6 @@ import os
 	#native NK opcodes so we can identify them
 opcodes = ["ADD", "NND", "LOD", "STR", "HLT", "CXA", "NOP", "JMP"]
 unaryOpcodes = ["NOP", "CXA", "HLT"]
-metaInstructions = ["INF", "PINF", "EPINF", "EINF", "BADR", "DSEC", "DNUM", "DSIZE"]
 
 	#assembler-supported data type labels
 dataTypes = [".data", ".ascii", ".asciiz"]
@@ -21,6 +20,9 @@ dataTypes = [".data", ".ascii", ".asciiz"]
 	#macro memory used. Added so we can declare the right quantity.
 	#altered in replaceLabels, if macro memory is needed.
 memUsed = 0
+
+	#Base Address Offset, to be set to default or grabbed from first file
+BAddr = 1024
 
 	#boolean variable to keep track of program structure.
 	#helps enforce the rule about no instructions after data.
@@ -50,6 +52,9 @@ def expandline(splitline):
 
 	if isFallthroughLine(splitline): #the base case - encompasses several other cases
 		expLine.append(" ".join(splitline))
+
+	elif isINFLine(splitline):
+		getINFValue(splitline)
 
 	elif isIncludeStatement(splitline):
 		expLine.append(handleInclude(splitline))
@@ -83,7 +88,12 @@ def isFallthroughLine(splitline):
 		return True
 	elif isData(splitline):
 		return True
-	elif isMetaData(splitline):
+	else:
+		return False
+
+#INF header lines get grabbed
+def isINFLine(splitline):
+	if len(splitline) == 2 and splitline[0] == "INF":
 		return True
 	else:
 		return False
@@ -116,12 +126,6 @@ def isSoleLabel(splitline):
 	else:
 		return False
 
-#checks if it is part of the INF header - this may be subject to change
-def isMetaData(splitline):
-	if len(splitline) in [1,2] and splitline[0] in metaInstructions:
-		return True
-	else:
-		return False
 
 #checks if it's a data declaration, possibly with label
 def isData(splitline):
@@ -370,12 +374,25 @@ def repaddress(token, replabel):
 	newtoken = "&(" + replabel + '[' + hex(repoffset)[2:] + "])[" + hex(addroffset)[2:] + ']'
 	return newtoken
 
+
+#deal with include statements by adding them to the FList queue
 def handleInclude(splitline):
 	if splitline[1] not in FList:
 		FList.append(splitline[1])
 		return ";Included " + splitline[1]
 	else:
 		return ";Ignored repeated include: " + splitline[1]
+
+#deal with INF statements by, if they're in the first file,
+#setting out output INF statement to have the given value.
+#If there's no statement in the first file, use the default
+#(1024).
+def getINFValue(splitline):
+	global BAddr
+	if FIndex != 0:
+		return
+	else:
+		BAddr = int(splitline[1], 10)
 
 #macros for expansion
 
@@ -1733,7 +1750,6 @@ FList.append(sys.argv[1])
 
 #open the appropriate files
 outFile = open(sys.argv[2], "w")
-print "output file opened: " + sys.argv[2]
 
 #deal with files
 while FIndex < len(FList):
@@ -1742,7 +1758,6 @@ while FIndex < len(FList):
 	#other files break, not the worst thing
 	try:
 		inFile = open(FList[FIndex], "r")
-		print "input file opened: " + FList[FIndex]
 	except OSError:
 		if FIndex > 0:
 			print "Serious exception: Included file not opened! " + FList[FIndex] + '\n'
@@ -1774,6 +1789,9 @@ while FIndex < len(FList):
 	#housekeeping
 	FIndex += 1
 	inFile.close()
+
+#Add the one line of INF header that we care about
+outFile.write("INF " + str(BAddr) + '\n')
 
 #dump the buffers
 for ILine in IBuffer:
