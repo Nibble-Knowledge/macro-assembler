@@ -392,7 +392,7 @@ def getINFValue(splitline):
 	if FIndex != 0:
 		return
 	else:
-		BAddr = int(splitline[1], 10)
+		BAddr = int(splitline[1], 0)
 
 #macros for expansion
 
