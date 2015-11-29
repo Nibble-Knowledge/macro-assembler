@@ -446,6 +446,20 @@ CXA 0
 NND N_[1]
 ADD N_[1]"""
 
+accMac["BEEP"] = """\
+STR macro[0]
+LOD N_[D]
+STR 0
+LOD N_[4]
+STR 1
+LOD macro[0]
+STR 2
+LOD N_[F]
+STR 0
+LOD N_[0]
+STR 1
+LOD macro[0]"""
+
 
 #unary operation macros - 4-bit versions
 
