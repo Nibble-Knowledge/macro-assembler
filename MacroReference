@@ -10,6 +10,9 @@ DEC		- decrements (subtracts 1)
 LSHIFT	- left shift by 1, filling LSB with 0.
 LROT	- left rotate by 1, filling LSB with old MSB
 SIGNEX	- if MSB is 1, puts F into ACC. Otherwise, puts 0 into ACC.
+BEEP	- Tells the audio peripheral, if present (and enabled by 0xD)
+		- to make a sound corresponding to the accumulator contents.
+		- Beep with acc value 0 tells it to be quiet.
 
 	Normal Unary Macros (OPCODE mem1 INTO mem2)
 

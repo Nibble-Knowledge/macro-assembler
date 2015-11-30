@@ -330,12 +330,12 @@ def reptoken(token, replabel):
 	#get the offset from the replacement, if necessary
 	if '[' in replabel and ']' in replabel:
 		repoffset = replabel[replabel.rindex('[') + 1 : replabel.rindex(']')]
-		repoffset = int(repoffset, 16)
+		repoffset = hexSmartInt(repoffset)
 
 	#and from the old label, if necessary
 	if '[' in token and ']' in token:
 		oldoffset = token[token.rindex('[') + 1 : token.rindex(']')]
-		oldoffset = int(oldoffset, 16)
+		oldoffset = hexSmartInt(oldoffset)
 			
 	#add them together
 	newoffset = oldoffset + repoffset
@@ -393,6 +393,15 @@ def getINFValue(splitline):
 		return
 	else:
 		BAddr = int(splitline[1], 0)
+
+def hexSmartInt(token):
+	if token[0] == '0':
+		if len(token) > 2 and token[1] == 'd':
+			return int(token[2:], 10)
+		else:
+			return int(token, 0)
+	else:
+		return int(token, 16)
 
 #macros for expansion
 

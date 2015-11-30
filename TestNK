@@ -49,5 +49,9 @@ MOVADDR somewhere INTO place[3]
 ;jump macros?
 JMPEQ place N_[f] TO label
 
+#Letting people use whatever the hell value type they want
+MOV N_[0b0101] INTO label
+MOV N_[0d11] INTO label
+MOV N_[0o10] INTO label
 
 TestData: .data 5

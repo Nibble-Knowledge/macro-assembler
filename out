@@ -1,0 +1,304 @@
+INF 9001
+
+;Start of code from TestNK
+
+
+#a comment
+NND lit[F]
+NND N_[F]
+#Trying a nested Macro
+NND N_[F]
+ADD N_[1]
+#The carry macro
+CXA 0
+NND N_[1]
+NND N_[F]
+
+#Test out the include statements!
+;Included TestINCL
+
+#simple acc stuff - being exhaustive in my tests
+ADD N_[1]
+ADD N_[F]
+
+#shifts
+STR macro[0]
+ADD macro[0]
+
+STR macro[0]
+ADD macro[0]
+STR macro[0]
+CXA 0
+NND N_[1]
+NND N_[F]
+ADD macro[0]
+label:
+
+#unary macros! Testing simple first
+LOD lit[f]
+STR place[0]
+
+#testing that the math works
+LOD place[3]
+STR elsewhere[a]
+LOD place[4]
+STR elsewhere[b]
+LOD place[5]
+STR elsewhere[c]
+LOD place[6]
+STR elsewhere[d]
+LOD place[7]
+STR elsewhere[e]
+LOD place[8]
+STR elsewhere[f]
+LOD place[9]
+STR elsewhere[10]
+LOD place[a]
+STR elsewhere[11]
+LOD place[b]
+STR elsewhere[12]
+LOD place[c]
+STR elsewhere[13]
+LOD place[d]
+STR elsewhere[14]
+LOD place[e]
+STR elsewhere[15]
+LOD place[f]
+STR elsewhere[16]
+LOD place[10]
+STR elsewhere[17]
+LOD place[11]
+STR elsewhere[18]
+LOD place[12]
+STR elsewhere[19]
+
+#does recursion between acc and unary work?
+LOD somewhere[1f]
+NND N_[F]
+STR place[0]
+
+#more complex recursion - 8-bit negations!
+LOD source[0]
+NND N_[F]
+STR dest[0]
+LOD source[1]
+NND N_[F]
+ADD N_[1]
+STR dest[1]
+CXA 0
+NND N_[1]
+NND N_[F]
+ADD dest[0]
+STR dest[0]
+
+#test addition
+LOD num[1]
+ADD othernum[1]
+STR sum[1]
+CXA 0
+NND N_[1]
+NND N_[F]
+ADD num[0]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD othernum[0]
+STR sum[0]
+CXA
+NND N_[1]
+NND macro[0]
+
+#subtraction uses lots of macro memory
+LOD secondop[0]
+NND N_[F]
+STR macro[3]
+LOD secondop[1]
+NND N_[F]
+STR macro[4]
+LOD secondop[2]
+NND N_[F]
+STR macro[5]
+LOD secondop[3]
+NND N_[F]
+STR macro[6]
+LOD secondop[4]
+NND N_[F]
+STR macro[7]
+LOD secondop[5]
+NND N_[F]
+STR macro[8]
+LOD secondop[6]
+NND N_[F]
+STR macro[9]
+LOD secondop[7]
+NND N_[F]
+STR macro[a]
+LOD N_[1]
+ADD firstop[7]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[a]
+STR dest[7]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[6]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[9]
+STR dest[6]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[5]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[8]
+STR dest[5]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[4]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[7]
+STR dest[4]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[3]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[6]
+STR dest[3]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[2]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[5]
+STR dest[2]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[1]
+STR macro[1]
+CXA
+NND N_[1]
+STR macro[0]
+LOD macro[1]
+ADD macro[4]
+STR dest[1]
+CXA
+NND N_[1]
+NND macro[0]
+ADD firstop[0]
+ADD macro[3]
+STR dest[0]
+
+#Addressing operations?
+LOD &(place[3])[0]
+STR somewhere[0]
+LOD &(place[3])[1]
+STR somewhere[1]
+LOD &(place[3])[2]
+STR somewhere[2]
+LOD &(place[3])[3]
+STR somewhere[3]
+
+#and again
+LOD &(somewhere[0])[0]
+STR place[3]
+LOD &(somewhere[0])[1]
+STR place[4]
+LOD &(somewhere[0])[2]
+STR place[5]
+LOD &(somewhere[0])[3]
+STR place[6]
+
+;alternate comment syntax
+;jump macros?
+LOD place[0]
+NND N_[f]
+STR macro[0]
+NND place[0]
+STR macro[1]
+LOD macro[0]
+NND N_[f]
+NND macro[1]
+STR macro[2]
+LOD macro[2]
+JMP label[0]
+
+#Letting people use whatever the hell value type they want
+LOD N_[5]
+STR label[0]
+LOD N_[b]
+STR label[0]
+LOD N_[8]
+STR label[0]
+
+
+;End of code from TestNK
+
+;Start of code from TestINCL
+
+#this is from TestINCL!
+LOD &(myData[0])[0]
+STR myPointer[0]
+LOD &(myData[0])[1]
+STR myPointer[1]
+LOD &(myData[0])[2]
+STR myPointer[2]
+LOD &(myData[0])[3]
+STR myPointer[3]
+LOD N_[0]
+JMP myPointer
+
+#recursive includes should NOT break
+;Ignored repeated include: TestNK
+HLT
+
+#TestINCL Data
+
+;End of code from TestINCL
+;Start of data sections
+;Start of data from TestNK
+
+TestData: .data 5
+
+;End of data from TestNK
+
+;Start of data from TestINCL
+
+myData: .data 4
+.data 2
+#more testINCL data
+.data 1
+
+;End of data from TestINCL
+
+;memory space used by macros
+macro: .data 11
+
