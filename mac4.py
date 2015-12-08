@@ -1,23 +1,12 @@
 #!/usr/bin/python
 
-# Naomi Hiebert coded this
-
-
-
-import string
 import sys
-import os
-
-
 
 #import global variables
 import globalVars
 
+#import the core functionality
 import macroExpand
-
-
-
-
 
 	#Buffer for output instructions
 IBuffer = []
@@ -25,15 +14,6 @@ IBuffer = []
 	#Buffer for output data
 DBuffer = []
 
-
-
-# I know it looks weird having the main function hide
-# all the way down here, but it avoids the need to
-# force the interpreter to load all the other stuff
-# first. Besides, a good main function is usually
-# pretty sparse.
-
-#main function
 
 #parse argument vector
 if len(sys.argv) < 2:
@@ -109,8 +89,3 @@ if globalVars.memUsed > 0:
 outFile.close()
 
 #done!
-
-
-
-		
-

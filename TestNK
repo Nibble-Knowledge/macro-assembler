@@ -53,5 +53,6 @@ JMPEQ place N_[f] TO label
 MOV N_[0b0101] INTO label
 MOV N_[0d11] INTO label
 MOV N_[0o10] INTO label
+MOV label[010] INTO label
 
 TestData: .data 5

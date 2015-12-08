@@ -258,6 +258,8 @@ LOD N_[b]
 STR label[0]
 LOD N_[8]
 STR label[0]
+LOD label[10]
+STR label[0]
 
 
 ;End of code from TestNK
