@@ -261,6 +261,20 @@ STR label[0]
 LOD label[10]
 STR label[0]
 
+#Now less picky! Assumes INTO $op1 if no dest given
+LOD this[1]
+NND N_[F]
+STR this[1]
+LOD this[2]
+NND N_[F]
+ADD N_[1]
+STR this[2]
+CXA 0
+NND N_[1]
+NND N_[F]
+ADD this[1]
+STR this[1]
+
 
 ;End of code from TestNK
 

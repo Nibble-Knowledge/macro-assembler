@@ -55,4 +55,7 @@ MOV N_[0d11] INTO label
 MOV N_[0o10] INTO label
 MOV label[010] INTO label
 
+#Now less picky! Assumes INTO $op1 if no dest given
+NEG8 this[1]
+
 TestData: .data 5

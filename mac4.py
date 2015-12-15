@@ -2,90 +2,96 @@
 
 import sys
 
-#import global variables
-import globalVars
 
-#import the core functionality
-import macroExpand
+#This file is always supposed to be an entry point, and
+#thus basically everything in it is in main
+if __name__ == "__main__":
 
-	#Buffer for output instructions
-IBuffer = []
+	#import global variables
+	import globalVars
 
-	#Buffer for output data
-DBuffer = []
+	#import the core functionality
+	import macroExpand
+
+		#Buffer for output instructions
+	IBuffer = []
+
+		#Buffer for output data
+	DBuffer = []
 
 
-#parse argument vector
-if len(sys.argv) < 2:
-	print "no input file specified!"
-	quit()
-if len(sys.argv) < 3:
-	print "no output file specified!"
-	quit()
+	#parse argument vector
+	if len(sys.argv) < 2:
+		print "no input file specified!"
+		quit()
+	if len(sys.argv) < 3:
+		print "no output file specified!"
+		quit()
 
-#Start the queue
-globalVars.FList.append(sys.argv[1])
+	#Start the queue
+	globalVars.FList.append(sys.argv[1])
 
-#open the appropriate files
-outFile = open(sys.argv[2], "w")
+	#open the appropriate files
+	outFile = open(sys.argv[2], "w")
 
-#deal with files
-while globalVars.FIndex < len(globalVars.FList):
+	#deal with files
+	while globalVars.FIndex < len(globalVars.FList):
 	
-	#first file breaks, everything breaks
-	#other files break, not the worst thing
-	try:
-		inFile = open(globalVars.FList[globalVars.FIndex], "r")
-	except OSError:
-		if FIndex > 0:
-			print "Serious exception: Included file not opened! " + globalVars.FList[gobalVars.FIndex] + '\n'
-			print "Proceeding with other files. Output may not be valid.\n"
-		else:
-			print "Fatal exception: Base file not opened!"
-			raise 
-
-	#keep enforcing the organisation with files, but not between them.
-	globalVars.DataFields = False
-
-	#comments good
-	DBuffer.append("\n;Start of data from " + globalVars.FList[globalVars.FIndex] + "\n")
-	IBuffer.append("\n;Start of code from " + globalVars.FList[globalVars.FIndex] + "\n")
-	
-	#use the functions we defined above
-	for line in inFile.readlines():
-		expandedLine = macroExpand.expandline(line.split())
-		for expLine in expandedLine:
-			if(globalVars.DataFields):
-				DBuffer.append(expLine)
+		#first file breaks, everything breaks
+		#other files break, not the worst thing
+		try:
+			inFile = open(globalVars.FList[globalVars.FIndex], "r")
+		except OSError:
+			if FIndex > 0:
+				print "Serious exception: Included file not opened! " + globalVars.FList[gobalVars.FIndex] + '\n'
+				print "Proceeding with other files. Output may not be valid.\n"
 			else:
-				IBuffer.append(expLine)
+				print "Fatal exception: Base file not opened!"
+				raise 
+
+		#keep enforcing the organisation with files, but not between them.
+		globalVars.DataFields = False
+
+		#comments good
+		DBuffer.append("\n;Start of data from " + globalVars.FList[globalVars.FIndex] + "\n")
+		IBuffer.append("\n;Start of code from " + globalVars.FList[globalVars.FIndex] + "\n")
 	
-	#comments foamy
-	DBuffer.append("\n;End of data from " + globalVars.FList[globalVars.FIndex])
-	IBuffer.append("\n;End of code from " + globalVars.FList[globalVars.FIndex])
+		#use the functions we defined above
+		for line in inFile.readlines():
+			expandedLine = macroExpand.expandline(line.split())
+			for expLine in expandedLine:
+				if(globalVars.DataFields):
+					DBuffer.append(expLine)
+				else:
+					IBuffer.append(expLine)
+	
+		#comments foamy
+		DBuffer.append("\n;End of data from " + globalVars.FList[globalVars.FIndex])
+		IBuffer.append("\n;End of code from " + globalVars.FList[globalVars.FIndex])
 
-	#housekeeping
-	globalVars.FIndex += 1
-	inFile.close()
+		#housekeeping
+		globalVars.FIndex += 1
+		inFile.close()
 
-#Add the one line of INF header that we care about
-outFile.write("INF " + str(globalVars.BAddr) + '\n')
+	#Add the one line of INF header that we care about
+	outFile.write("INF " + str(globalVars.BAddr) + '\n')
 
-#dump the buffers
-for ILine in IBuffer:
-	outFile.write(ILine + '\n')
+	#dump the buffers
+	for ILine in IBuffer:
+		outFile.write(ILine + '\n')
 
-outFile.write(";Start of data sections")
+	outFile.write(";Start of data sections")
 
-for DLine in DBuffer:
-	outFile.write(DLine + '\n')
+	for DLine in DBuffer:
+		outFile.write(DLine + '\n')
 
-#declare macro scratch space
-if globalVars.memUsed > 0:
-	outFile.write("\n;memory space used by macros\n")
-	outFile.write("macro: .data " + str(globalVars.memUsed + 1) + "\n\n")
+	#declare macro scratch space
+	if globalVars.memUsed > 0:
+		outFile.write("\n;memory space used by macros\n")
+		outFile.write("macro: .data " + str(globalVars.memUsed + 1) + "\n\n")
 
-#clean up after ourselves
-outFile.close()
+	#clean up after ourselves
+	outFile.close()
 
-#done!
+	#done!
+

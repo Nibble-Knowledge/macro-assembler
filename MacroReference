@@ -26,7 +26,7 @@ LROT	- left rotate by 1
 	Normal Binary Macros (OPCODE mem1 mem2 INTO mem3)
 
 ADD		- basic addition with carry
-SUB		- subtraction, with carry
+SUB		- subtraction, with carry (mem3 = mem1 - mem2)
 NAND	- bitwise NAND
 AND		- bitwise AND
 OR		- bitwise OR
@@ -49,6 +49,12 @@ must be on a line with nothing else, and must end with a colon
 with a data field declaration. Line comments are marked with a 
 leading hash ('#') or semicolon (';'), and cannot be on the 
 same line as anything else.
+
+In unary and binary macros, the "INTO" and final label can be
+omitted. If this is done, it will assume you meant "INTO mem1",
+and put the result of the operation into the first memory location
+given. For example, "NEG8 number" is equivalent to "NEG8 number
+INTO number".
 
 Blank lines and line comments are both unaltered by this program,
 meaning that the output code will be slightly easier to read and

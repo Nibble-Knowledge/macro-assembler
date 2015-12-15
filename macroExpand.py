@@ -14,9 +14,6 @@ from asmDicts import opcodes, unaryOpcodes, dataTypes
 #import global variables
 import globalVars
 
-#hardcoded lists - for identifying macro types
-
-
 
 
 # The real heart of the operation - identifies macros anywhere,
@@ -134,13 +131,17 @@ def isAccMacro(splitline):
 #detects unary operation macros
 def isUnaryMacro(splitline):
 	if len(splitline) == 4 and splitline[0] in unaMac and splitline[2] == "INTO":
-		return True		
+		return True	
+	elif len(splitline) == 2 and splitline[0] in unaMac and splitline[1] != "ACC":
+		return True	
 	else:
 		return False
 
 #detects binary operation macros
 def isBinaryMacro(splitline):
 	if len(splitline) == 5 and splitline[0] in binMac and splitline[3] == "INTO":
+		return True
+	elif len(splitline) == 3 and splitline[0] in binMac:
 		return True
 	else:
 		return False
@@ -191,7 +192,12 @@ def expandAccMacro(inMac):
 def expandUnaryMacro(inMac):
 	outlines = []
 	op1 = inMac[1]
-	dest = inMac[3]
+
+	#Assume in-place operation if no dest given
+	if len(inMac) == 4:
+		dest = inMac[3]
+	else:
+		dest = op1
 
 	for line in unaMac[inMac[0]].splitlines():
 		splitline = line.split()
@@ -211,7 +217,11 @@ def expandBinaryMacro(inMac):
 	outlines = []
 	op1 = inMac[1]
 	op2 = inMac[2]
-	dest = inMac[4]
+
+	if len(inMac) == 5:
+		dest = inMac[4]
+	else:
+		deset = op1
 
 	for line in binMac[inMac[0]].splitlines():
 		splitline = line.split()
