@@ -42,6 +42,10 @@ XNOR	- bitwise XNOR
 
 JMPEQ	- jump if memory locations hold equal contents
 JMPNE	- jump if memory locations hold different contents
+JMPG	- jump if op1 holds strictly greater value than op2
+JMPL	- jump if op1 holds strictly lesser value than op2
+JMPGE	- jump if op1 holds greater or equal value than op2
+JMPLE	- jump if op1 hold lesser or equal value than op2
 
 	Syntactic Requirements
 
@@ -102,6 +106,9 @@ ADDC	- binary macro. Propagates addition. Mostly just there
 
 SUBC	- binary macro. Propagates subtractions. As above, just
 		there to make definitions prettier.
+
+CMPC	- binary macro. Propagates dummy subtraction. Like SUBC,
+		but without storing the result. Used for comparisons.
 
 PROPCARR- unary macro. Adds the carry bit from STAT to the first
 		operand, and stores the result in the destination.

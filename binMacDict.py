@@ -22,6 +22,11 @@ NOT ACC
 ADD $op1
 STR $dest"""
 
+binMac["CMPC"] = """\
+LOD $op2
+NOT ACC
+ADD $op1"""
+
 binMac["NAND"] = """\
 LOD $op1
 NND $op2

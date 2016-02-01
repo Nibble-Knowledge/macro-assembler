@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
 
+#Note for future modifications: 2's complement compare flag
+#(the XOR of the sign and overflow flags) being 1 means that
+#the subtraction result was strictly less than zero
+
+
 jmpMac = dict()
 
 jmpMac["JMPEQ"] = """\
@@ -14,26 +19,39 @@ LOD macro[1]
 LOGNOT ACC
 JMP $dest"""
 
+#inverse of JMPLE
 jmpMac["JMPG"] = """\
-LOD $op1
-NEG ACC
-ADD $op2
+USTC ACC
+CMPC $op1 $op2
 GETCMP ACC
 LOGNOT ACC
 JMP $dest"""
 
+#inverse of JMPGE
 jmpMac["JMPL"] = """\
-LOD $op1
-NEG ACC
-ADD $op2
+USTC ACC
+CMPC $op2 $op1
+GETCMP ACC
+LOGNOT ACC
+JMP $dest"""
+
+#Subtract op1 from op2
+#if CMP is 0, result was 0 or greater
+#thus op1 was GE to op2
+jmpMac["JMPGE"] = """\
+USTC ACC
+CMPC $op2 $op1
 GETCMP ACC
 JMP $dest"""
 
-jmpMac["JMPGE"] = """\
-JMPL $op2 $op1 TO $dest"""
-
+#subtract op2 from op1
+#if CMP is 0, result was 0 or greater
+#so thus op2 was less than or equal to op1
 jmpMac["JMPLE"] = """\
-JMPG $op2 $op1 TO $dest"""
+USTC ACC
+CMPC $op1 $op2
+GETCMP ACC
+JMP $dest"""
 
 #larger jump macros.
 
@@ -134,727 +152,135 @@ LOGNOT ACC
 JMP $dest"""
 
 jmpMac["JMPG8"] = """\
-NOT8 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
+USTC ACC
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
 LOGNOT ACC
-JMP $dest
-"""
+JMP $dest"""
 
 jmpMac["JMPL8"] = """\
-NOT8 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
-JMP $dest
+JMPG8 $op2 $op1 $dest
 """
 
 jmpMac["JMPLE8"] = """\
-JMPG8 $op2 $op1 TO $dest"""
+USTC ACC
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
+JMP $dest"""
 
 jmpMac["JMPGE8"] = """\
-JMPL8 $op2 $op1 TO $dest"""
+JMPLE8 $op2 $op1 TO $dest"""
 
 jmpMac["JMPG16"] = """\
-NOT16 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
+USTC ACC
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
 LOGNOT ACC
 JMP $dest
 """
 
 jmpMac["JMPL16"] = """\
-NOT16 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
-JMP $dest
+JMPG16 $op2 $op1 $dest
 """
 
 jmpMac["JMPLE16"] = """\
-JMPG16 $op2 $op1 TO $dest"""
+USTC ACC
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
+JMP $dest"""
 
 jmpMac["JMPGE16"] = """\
 JMPL16 $op2 $op1 TO $dest"""
 
 jmpMac["JMPL32"] = """\
-NOT32 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[B]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[7]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[A]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[6]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[9]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[5]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[8]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[4]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
-JMP $dest
-"""
+JMPG32 $op2 $op1 TO $dest"""
 
 jmpMac["JMPG32"] = """\
-NOT32 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[B]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[7]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[A]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[6]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[9]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[5]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[8]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[4]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
+USTC ACC
+CMPC $op1[7] $op2[7]
+CMPC $op1[6] $op2[6]
+CMPC $op1[5] $op2[5]
+CMPC $op1[4] $op2[4]
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
 LOGNOT ACC
 JMP $dest
 """
 
 jmpMac["JMPLE32"] = """\
-JMPG32 $op2 $op1 TO $dest"""
+USTC ACC
+CMPC $op1[7] $op2[7]
+CMPC $op1[6] $op2[6]
+CMPC $op1[5] $op2[5]
+CMPC $op1[4] $op2[4]
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
+JMP $dest"""
 
 jmpMac["JMPGE32"] = """\
-JMPL32 $op2 $op1 TO $dest"""
+JMPLE32 $op2 $op1 TO $dest"""
 
 jmpMac["JMPL64"] = """\
-NOT64 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[13]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[F]
-CXA
-NND N_[1]
-ADD macro[12]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[E]
-CXA
-NND N_[1]
-ADD macro[11]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[D]
-CXA
-NND N_[1]
-ADD macro[10]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[C]
-CXA
-NND N_[1]
-ADD macro[F]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[B]
-CXA
-NND N_[1]
-ADD macro[E]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[A]
-CXA
-NND N_[1]
-ADD macro[D]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[9]
-CXA
-NND N_[1]
-ADD macro[C]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[8]
-CXA
-NND N_[1]
-ADD macro[B]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[7]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[A]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[6]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[9]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[5]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[8]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[4]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
-JMP $dest
-"""
+JMPG64 $op2 $op1 TO $dest"""
 
 jmpMac["JMPG64"] = """\
-NOT64 $op1 INTO macro[4]
-LOD N_[1]
-ADD macro[13]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[F]
-CXA
-NND N_[1]
-ADD macro[12]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[E]
-CXA
-NND N_[1]
-ADD macro[11]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[D]
-CXA
-NND N_[1]
-ADD macro[10]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[C]
-CXA
-NND N_[1]
-ADD macro[F]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[B]
-CXA
-NND N_[1]
-ADD macro[E]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[A]
-CXA
-NND N_[1]
-ADD macro[D]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[9]
-CXA
-NND N_[1]
-ADD macro[C]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[8]
-CXA
-NND N_[1]
-ADD macro[B]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[7]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[A]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[6]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[9]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[5]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[8]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[4]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[3]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[2]
-CXA
-NND N_[1]
-NND macro[0]
-ADD macro[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2[1]
-CXA
-NND N_[1]
-NND macro[0]
-;Start dealing with the most significant nibble
-ADD macro[4]
-STR macro[2]
-;1st partial sum in macro[2]
-CXA
-XOR macro[3] macro[2] INTO macro[3]
-LOD macro[3]
-STR macro[3]
-;OVF1 in MSB of macro[3]
-;get final CMP bit
-LOD macro[2]
-ADD $op2[0]
-CXA
-STR macro[2]
-XOR macro[2] macro[3] INTO macro[3]
-LOD macro[3]
-NND N_[8]
-NND N_[F]
+USTC ACC
+CMPC $op1[F] $op2[F]
+CMPC $op1[E] $op2[E]
+CMPC $op1[D] $op2[D]
+CMPC $op1[C] $op2[C]
+CMPC $op1[B] $op2[B]
+CMPC $op1[A] $op2[A]
+CMPC $op1[9] $op2[9]
+CMPC $op1[8] $op2[8]
+CMPC $op1[7] $op2[7]
+CMPC $op1[6] $op2[6]
+CMPC $op1[5] $op2[5]
+CMPC $op1[4] $op2[4]
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
 LOGNOT ACC
-JMP $dest
-"""
+JMP $dest"""
 
 
 jmpMac["JMPLE64"] = """\
-JMPG64 $op2 $op1 TO $dest"""
+USTC ACC
+CMPC $op1[F] $op2[F]
+CMPC $op1[E] $op2[E]
+CMPC $op1[D] $op2[D]
+CMPC $op1[C] $op2[C]
+CMPC $op1[B] $op2[B]
+CMPC $op1[A] $op2[A]
+CMPC $op1[9] $op2[9]
+CMPC $op1[8] $op2[8]
+CMPC $op1[7] $op2[7]
+CMPC $op1[6] $op2[6]
+CMPC $op1[5] $op2[5]
+CMPC $op1[4] $op2[4]
+CMPC $op1[3] $op2[3]
+CMPC $op1[2] $op2[2]
+CMPC $op1[1] $op2[1]
+CMPC $op1[0] $op2[0]
+GETCMP ACC
+JMP $dest"""
 
 jmpMac["JMPGE64"] = """\
-JMPL64 $op2 $op1 TO $dest"""
+JMPLE64 $op2 $op1 TO $dest"""
 
