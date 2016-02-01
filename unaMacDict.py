@@ -13,31 +13,41 @@ NOT ACC
 STR $dest"""
 
 unaMac["NEG"] = """\
+UCLC ACC
 LOD $op1
-NEG ACC
+NOT ACC
+ADD N_[1]
 STR $dest"""
 
 unaMac["PROPCARR"] = """\
-GETCARR ACC
+LOD N_[0]
 ADD $op1
 STR $dest"""
 
+unaMac["PROPNEG"] = """\
+LOD $op1[0]
+NND N_[F]
+ADD N_[0]
+STR $dest[0]"""
+
 unaMac["INC"] = """\
+UCLC ACC
 LOD N_[1]
 ADD $op1
 STR $dest"""
 
 unaMac["LSHIFT"] = """\
+UCLC ACC
 LOD N_[0]
 ADD $op1
 ADD $op1
 STR $dest"""
 
 unaMac["LROT"] = """\
-LOD N_[0]
-LSHIFT $op1 INTO $dest
-GETCARR ACC
-ADD $dest
+UCLC ACC
+LOD $op1
+ADD $op1
+ADD N_[0]
 STR $dest"""
 
 unaMac["MOVADDR"] = """\
@@ -85,26 +95,35 @@ NOT32 $op1[0] INTO $dest[0]
 NOT32 $op1[8] INTO $dest[8]"""
 
 unaMac["NEG8"] = """\
-NOT $op1 INTO $dest
 NEG $op1[1] INTO $dest[1]
-PROPCARR $dest INTO $dest"""
+PROPNEG $op1[0] INTO $dest[0]"""
 
 unaMac["NEG16"] = """\
-NOT16 $op1 INTO $dest
-INC16 $dest INTO $dest"""
+NEG8 $op1[2] INTO $dest[2]
+PROPNEG $op1[1] INTO $dest[1]
+PROPNEG $op1[0] INTO $dest[0]"""
 
 unaMac["NEG32"] = """\
-NOT32 $op1 INTO $dest
-INC32 $dest INTO $dest"""
+NEG16 $op1[4] INTO $dest[4]
+PROPNEG $op1[3] INTO $dest[3]
+PROPNEG $op1[2] INTO $dest[2]
+PROPNEG $op1[1] INTO $dest[1]
+PROPNEG $op1[0] INTO $dest[0]"""
 
 unaMac["NEG64"] = """\
-NOT64 $op1 INTO $dest
-INC64 $dest INTO $dest"""
+NEG32 $op1[8] INTO $dest[8]
+PROPNEG $op1[7] INTO $dest[7]
+PROPNEG $op1[6] INTO $dest[6]
+PROPNEG $op1[5] INTO $dest[5]
+PROPNEG $op1[4] INTO $dest[4]
+PROPNEG $op1[3] INTO $dest[3]
+PROPNEG $op1[2] INTO $dest[2]
+PROPNEG $op1[1] INTO $dest[1]
+PROPNEG $op1[0] INTO $dest[0]"""
 
 unaMac["INC8"] = """\
-LOD N_[1]
-ADD $op1[1]
-STR $dest[1]
+USTC ACC
+PROPCARR $op1[1] INTO $dest[1]
 PROPCARR $op1[0] INTO $dest[0]"""
 
 unaMac["INC16"] = """\
@@ -144,21 +163,25 @@ ADD64 $op1[0] $op1[0] INTO $dest[0]"""
 
 unaMac["LROT8"] = """\
 LSHIFT8 $op1 INTO $dest
+LOD N_[0]
 ADD $dest[1]
 STR $dest[1]"""
 
 unaMac["LROT16"] = """\
 LSHIFT16 $op1 INTO $dest
+LOD N_[0]
 ADD $dest[3]
 STR $dest[3]"""
 
 unaMac["LROT32"] = """\
 LSHIFT32 $op1 INTO $dest
+LOD N_[0]
 ADD $dest[7]
 STR $dest[7]"""
 
 unaMac["LROT64"] = """\
 LSHIFT64 $op1 INTO $dest
+LOD N_[0]
 ADD $dest[F]
 STR $dest[F]"""
 

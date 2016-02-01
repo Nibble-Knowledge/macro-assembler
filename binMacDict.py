@@ -4,27 +4,22 @@
 binMac = dict()
 
 binMac["ADD"] = """\
+UCLC ACC
+ADDC $op1 $op2 INTO $dest"""
+
+binMac["ADDC"] = """\
 LOD $op1
 ADD $op2
 STR $dest"""
 
-binMac["ADDC"] = """\
-ADD $op1
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD $op2
-STR $dest
-CXA
-NND N_[1]
-NND macro[0]"""
-
 binMac["SUB"] = """\
-LOD $op1
-NEG ACC
-ADD $op2
+USTC ACC
+SUBC $op1 $op1 INTO $dest"""
+
+binMac["SUBC"] = """\
+LOD $op2
+NOT ACC
+ADD $op1
 STR $dest"""
 
 binMac["NAND"] = """\
@@ -81,23 +76,22 @@ STR $dest"""
 
 binMac["ADD8"] = """\
 ADD $op1[1] $op2[1] INTO $dest[1]
-GETCARR ACC
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD16"] = """\
-ADD8 $op1[3] $op2[3] INTO $dest[3]
+ADD8 $op1[2] $op2[2] INTO $dest[2]
 ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD32"] = """\
-ADD16 $op1[7] $op2[7] INTO $dest[7]
+ADD16 $op1[4] $op2[4] INTO $dest[4]
 ADDC $op1[3] $op2[3] INTO $dest[3]
 ADDC $op1[2] $op2[2] INTO $dest[2]
 ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["ADD64"] = """\
-ADD32 $op1[F] $op2[F] INTO $dest[F]
+ADD32 $op1[8] $op2[8] INTO $dest[8]
 ADDC $op1[7] $op2[7] INTO $dest[7]
 ADDC $op1[6] $op2[6] INTO $dest[6]
 ADDC $op1[5] $op2[5] INTO $dest[5]
@@ -108,58 +102,31 @@ ADDC $op1[1] $op2[1] INTO $dest[1]
 ADDC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["SUB8"] = """\
-NOT8 $op2 INTO macro[3]
-LOD N_[1]
-ADDC $op1[1] macro[4] INTO $dest[1]
-ADD $op1[0]
-ADD macro[3]
-STR $dest[0]"""
+SUB $op1[1] $op2[1] INTO $dest[1]
+SUBC $op1 $op2 INTO $dest"""
 
 binMac["SUB16"] = """\
-NOT16 $op2 INTO macro[3]
-LOD N_[1]
-ADDC $op1[3] macro[6] INTO $dest[3]
-ADDC $op1[2] macro[5] INTO $dest[2]
-ADDC $op1[1] macro[4] INTO $dest[1]
-ADD $op1[0]
-ADD macro[3]
-STR $dest[0]"""
+SUB8 $op1[2] $op2[2] INTO $dest[2]
+SUBC $op1[1] $op2[1] INTO $dest[1]
+SUBC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["SUB32"] = """\
-NOT32 $op2 INTO macro[3]
-LOD N_[1]
-ADDC $op1[7] macro[A] INTO $dest[7]
-ADDC $op1[6] macro[9] INTO $dest[6]
-ADDC $op1[5] macro[8] INTO $dest[5]
-ADDC $op1[4] macro[7] INTO $dest[4]
-ADDC $op1[3] macro[6] INTO $dest[3]
-ADDC $op1[2] macro[5] INTO $dest[2]
-ADDC $op1[1] macro[4] INTO $dest[1]
-ADD $op1[0]
-ADD macro[3]
-STR $dest[0]"""
+SUB16 $op1[4] $op2[4] INTO $dest[4]
+SUBC $op1[3] $op2[3] INTO $dest[3]
+SUBC $op1[2] $op2[2] INTO $dest[2]
+SUBC $op1[1] $op2[1] INTO $dest[1]
+SUBC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["SUB64"] = """\
-NOT64 $op2 INTO macro[3]
-LOD N_[1]
-ADDC $op1[F] macro[12] INTO $dest[F]
-ADDC $op1[E] macro[11] INTO $dest[E]
-ADDC $op1[D] macro[10] INTO $dest[D]
-ADDC $op1[C] macro[F] INTO $dest[C]
-ADDC $op1[B] macro[E] INTO $dest[B]
-ADDC $op1[A] macro[D] INTO $dest[A]
-ADDC $op1[9] macro[C] INTO $dest[9]
-ADDC $op1[8] macro[B] INTO $dest[8]
-ADDC $op1[7] macro[A] INTO $dest[7]
-ADDC $op1[6] macro[9] INTO $dest[6]
-ADDC $op1[5] macro[8] INTO $dest[5]
-ADDC $op1[4] macro[7] INTO $dest[4]
-ADDC $op1[3] macro[6] INTO $dest[3]
-ADDC $op1[2] macro[5] INTO $dest[2]
-ADDC $op1[1] macro[4] INTO $dest[1]
-ADD $op1[0]
-ADD macro[3]
-STR $dest[0]"""
+SUB32 $op1[8] $op2[8] INTO $dest[8]
+SUBC $op1[7] $op2[7] INTO $dest[7]
+SUBC $op1[6] $op2[6] INTO $dest[6]
+SUBC $op1[5] $op2[5] INTO $dest[5]
+SUBC $op1[4] $op2[4] INTO $dest[4]
+SUBC $op1[3] $op2[3] INTO $dest[3]
+SUBC $op1[2] $op2[2] INTO $dest[2]
+SUBC $op1[1] $op2[1] INTO $dest[1]
+SUBC $op1[0] $op2[0] INTO $dest[0]"""
 
 binMac["NAND8"] = """\
 NAND $op1[0] $op2[0] INTO $dest[0]

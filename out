@@ -7,31 +7,44 @@ INF 9001
 NND lit[F]
 NND N_[F]
 #Trying a nested Macro
+STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
 NND N_[F]
 ADD N_[1]
 #The carry macro
-CXA 0
-NND N_[1]
-NND N_[F]
+LOD N_[0]
+ADD N_[0]
 
 #Test out the include statements!
 ;Included TestINCL
 
 #simple acc stuff - being exhaustive in my tests
+STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
 ADD N_[1]
+STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
 ADD N_[F]
 
 #shifts
 STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
 ADD macro[0]
 
 STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
 ADD macro[0]
-STR macro[0]
-CXA 0
-NND N_[1]
-NND N_[F]
-ADD macro[0]
+ADD N_[0]
 label:
 
 #unary macros! Testing simple first
@@ -78,143 +91,61 @@ NND N_[F]
 STR place[0]
 
 #more complex recursion - 8-bit negations!
-LOD source[0]
-NND N_[F]
-STR dest[0]
+LOD N_[0]
+ADD N_[0]
 LOD source[1]
 NND N_[F]
 ADD N_[1]
 STR dest[1]
-CXA 0
-NND N_[1]
+LOD source[0]
 NND N_[F]
-ADD dest[0]
+ADD N_[0]
 STR dest[0]
 
 #test addition
+LOD N_[0]
+ADD N_[0]
 LOD num[1]
 ADD othernum[1]
 STR sum[1]
-CXA 0
-NND N_[1]
-NND N_[F]
-ADD num[0]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
+LOD num[0]
 ADD othernum[0]
 STR sum[0]
-CXA
-NND N_[1]
-NND macro[0]
 
 #subtraction uses lots of macro memory
-LOD secondop[0]
+LOD N_[8]
+ADD N_[8]
+LOD firstop[7]
 NND N_[F]
-STR macro[3]
-LOD secondop[1]
-NND N_[F]
-STR macro[4]
-LOD secondop[2]
-NND N_[F]
-STR macro[5]
-LOD secondop[3]
-NND N_[F]
-STR macro[6]
-LOD secondop[4]
-NND N_[F]
-STR macro[7]
-LOD secondop[5]
-NND N_[F]
-STR macro[8]
+ADD firstop[7]
+STR dest[7]
 LOD secondop[6]
 NND N_[F]
-STR macro[9]
-LOD secondop[7]
-NND N_[F]
-STR macro[a]
-LOD N_[1]
-ADD firstop[7]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[a]
-STR dest[7]
-CXA
-NND N_[1]
-NND macro[0]
 ADD firstop[6]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[9]
 STR dest[6]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[5]
+NND N_[F]
 ADD firstop[5]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[8]
 STR dest[5]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[4]
+NND N_[F]
 ADD firstop[4]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[7]
 STR dest[4]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[3]
+NND N_[F]
 ADD firstop[3]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[6]
 STR dest[3]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[2]
+NND N_[F]
 ADD firstop[2]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[5]
 STR dest[2]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[1]
+NND N_[F]
 ADD firstop[1]
-STR macro[1]
-CXA
-NND N_[1]
-STR macro[0]
-LOD macro[1]
-ADD macro[4]
 STR dest[1]
-CXA
-NND N_[1]
-NND macro[0]
+LOD secondop[0]
+NND N_[F]
 ADD firstop[0]
-ADD macro[3]
 STR dest[0]
 
 #Addressing operations?
@@ -239,16 +170,13 @@ STR place[6]
 
 ;alternate comment syntax
 ;jump macros?
+LOD N_[8]
+ADD N_[8]
 LOD place[0]
-NND N_[f]
-STR macro[0]
-NND place[0]
+NND N_[F]
+ADD place[0]
 STR macro[1]
-LOD macro[0]
-NND N_[f]
-NND macro[1]
-STR macro[2]
-LOD macro[2]
+LOD macro[1]
 JMP label[0]
 
 #Letting people use whatever the hell value type they want
@@ -262,17 +190,15 @@ LOD label[10]
 STR label[0]
 
 #Now less picky! Assumes INTO $op1 if no dest given
-LOD this[1]
-NND N_[F]
-STR this[1]
+LOD N_[0]
+ADD N_[0]
 LOD this[2]
 NND N_[F]
 ADD N_[1]
 STR this[2]
-CXA 0
-NND N_[1]
+LOD this[1]
 NND N_[F]
-ADD this[1]
+ADD N_[0]
 STR this[1]
 
 
@@ -316,5 +242,5 @@ myData: .data 4
 ;End of data from TestINCL
 
 ;memory space used by macros
-macro: .data 11
+macro: .data 2
 

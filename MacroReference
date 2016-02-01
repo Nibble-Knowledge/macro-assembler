@@ -5,8 +5,12 @@ NEG		- 2's complement negation
 LOGNOT	- boolean negation (nonzero becomes zero, zero becomes nonzero)
 GETCARR	- isolates the carry bit from the status register
 GETCMP	- isolates the 2'c complement comparison bit from status register
-INC		- increments (adds 1)
-DEC		- decrements (subtracts 1)
+CLRCARR - clears the carry bit (sets it to 0)
+SETCARR - sets the carry bit (sets to 1)
+INC		- adds 1
+DEC		- subtracts 1 (by adding F)
+UCLC	- unsafe clear carry (sets carry to 0, ACC value not preserved)
+USTC	- unsafe set carry (sets carry to 1, ACC value not preserved)
 LSHIFT	- left shift by 1, filling LSB with 0.
 LROT	- left rotate by 1, filling LSB with old MSB
 SIGNEX	- if MSB is 1, puts F into ACC. Otherwise, puts 0 into ACC.
@@ -34,7 +38,7 @@ NOR		- bitwise NOR
 XOR		- bitwise XOR
 XNOR	- bitwise XNOR
 
-	Jump Macros (OPCODE mem1 mem2 TO code1) - not fully tested yet
+	Jump Macros (OPCODE mem1 mem2 TO code1)
 
 JMPEQ	- jump if memory locations hold equal contents
 JMPNE	- jump if memory locations hold different contents
@@ -77,6 +81,11 @@ value) in memory. For instance, if place[0] has previously been
 used to MOV16 the value 0xC0DE, then place [2] now holds the
 value "D".
 
+Non-hexadecimal offsets are valid, using appropriate prefixes:
+	- 0d for decimal
+	- 0b for binary
+	- 0o for octal
+
 The &(label[A])[B] syntax is supported by this program, but with
 the requirement that both offsets be present at all times, even if
 their values are 0. If the second offset has a value greater than 3,
@@ -88,13 +97,17 @@ bit of an address, which is meaningless.
 These were designed for use by other macros, but are available
 to use in your programs if you want.
 
-ADDC	- binary macro. Requires that ACC hold previous carry.
-		Propagates addition, and sets ACC to hold output carry.
-		Note that this may not be the same as the STAT carry;
-		the one in the ACC is correct.
+ADDC	- binary macro. Propagates addition. Mostly just there
+		to make the macro definitions cleaner.
+
+SUBC	- binary macro. Propagates subtractions. As above, just
+		there to make definitions prettier.
 
 PROPCARR- unary macro. Adds the carry bit from STAT to the first
-		operand, and stores the result in the second operand.
+		operand, and stores the result in the destination.
+
+PROPNEG	- unary macro. NOTs the first operand, adds carry from
+		STAT, and stores in destination.
 
 MOVADDR	- puts address of mem1 into mem2 (as C '&' operator). No
 		variants available, but very useful for subroutine calls.
@@ -112,16 +125,15 @@ in the file and the first data declaration in the file. Comments
 are generated in a way that allows easy traceability of which file
 a particular line of code originated from.
 
-	Absurd Levels of Detail - these are still somewhat volatile
+	The Carry Bit
 
-Not all math macros leave the status register in a useful state.
-In fact, it's safe to assume multi-nibble ones don't. Instead,
-some of them leave a carry in the ACC. Here's a list of macros
-that (in 8-bit or larger) leave a carry in ACC:
-
-ADD 
-INC 
-NEG 
-LSHIFT (but not LROT)
+Due to the latest architectural changes (start of Feb 2016), we now
+have an extra bit of state - the carry bit. Since it alters the behavior
+of ADD instructions, we need to be aware of it. The macros here have
+been coded to work the same regardless of carry bit state, but to
+leave the carry bit in unknown state. You should probably follow this
+philosophy in your code too. Never assume that the carry bit is known,
+unless you're absolutely sure it is, and use the CLRCARR, SETCARR,
+UCLC, and USTC macros to put it in known state.
 
 
