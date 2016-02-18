@@ -4,7 +4,7 @@
 
 	#macro memory used. Added so we can declare the right quantity.
 	#altered in replaceLabels, if macro memory is needed.
-memUsed = -1
+memUsed = 0
 
 	#Base Address Offset, to be set to default or grabbed from first file
 BAddr = 1024

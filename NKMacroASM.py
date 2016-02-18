@@ -101,9 +101,9 @@ for DLine in DBuffer:
 	outFile.write(DLine + '\n')
 
 #declare macro scratch space
-if globalVars.memUsed >= 0:
+if globalVars.memUsed > 0:
 	outFile.write("\n;memory space used by macros\n")
-	outFile.write("macro: .data " + str(globalVars.memUsed + 1) + "\n\n")
+	outFile.write("macro: .data " + str(globalVars.memUsed) + "\n\n")
 
 #clean up after ourselves
 outFile.close()

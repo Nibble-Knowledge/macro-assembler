@@ -181,6 +181,7 @@ def expandAccMacro(inMac):
 
 	for line in accMac[inMac[0]].splitlines():
 		outlines.extend(expandline(line.split()))
+		countMacroUsage(line.split())
 	return outlines
 
 # Really the only difference between unary and binary is
@@ -206,6 +207,7 @@ def expandUnaryMacro(inMac):
 		splitline = replaceLabels(splitline, "$op1", op1)
 		splitline = replaceLabels(splitline, "&op1", op1)
 		splitline = replaceLabels(splitline, "$dest", dest)
+		countMacroUsage(splitline)
 
 		#recursively expand the resulting line
 		outlines.extend(expandline(splitline))
@@ -221,7 +223,7 @@ def expandBinaryMacro(inMac):
 	if len(inMac) == 5:
 		dest = inMac[4]
 	else:
-		deset = op1
+		dest = op1
 
 	for line in binMac[inMac[0]].splitlines():
 		splitline = line.split()
@@ -230,6 +232,7 @@ def expandBinaryMacro(inMac):
 		splitline = replaceLabels(splitline, "$op1", op1)
 		splitline = replaceLabels(splitline, "$op2", op2)
 		splitline = replaceLabels(splitline, "$dest", dest)
+		countMacroUsage(splitline)
 
 		#recursively expand the resulting line
 		outlines.extend(expandline(splitline))
@@ -256,6 +259,7 @@ def expandJumpMacro(inMac):
 		splitline = replaceLabels(splitline, "$op1", op1)
 		splitline = replaceLabels(splitline, "$op2", op2)
 		splitline = replaceLabels(splitline, "$dest", dest)
+		countMacroUsage(splitline)
 
 		#recursively expand the resulting line
 		outlines.extend(expandline(splitline))
@@ -289,16 +293,19 @@ def replaceLabels(splitline, oldlabel, replabel):
 		else:
 			#not the label we're looking for
 			outline.append(token)
-
-		#check if we're using macro memory. If so, we might need to 
-		#expand our macro memory bank.
-		if "macro[" in outline[-1]:
-			macoffset = outline[-1][outline[-1].index('[') + 1 : outline[-1].index(']')]
-			macoffset = int(macoffset, 16)
-			if macoffset > globalVars.memUsed:
-				globalVars.memUsed = macoffset
-
 	return outline
+
+
+def countMacroUsage(outline):
+	#check if we're using macro memory. If so, we might need to 
+	#expand our macro memory bank.
+	if "macro[" in outline[-1]:
+		macoffset = outline[-1][outline[-1].index('[') + 1 : outline[-1].index(']')]
+		macoffset = int(macoffset, 16)
+		macoffset += 1
+		if macoffset > globalVars.memUsed:
+			globalVars.memUsed = macoffset
+
 
 #Takes:	The token to replace (maybe with offset, starts with $)
 #		The new label to replace things with
