@@ -1,840 +1,249 @@
-INF 1024
+INF 9001
 
-;Start of code from ../../Drivers/driver-ide/driver.s
+;Start of code from TestNK
 
 
-IDE_DRIVER.Enter:
-
-#Subject to change if necessary
-LOD N_[1]
-STR CHIP_SELECT[0]
-
-#Arrange our location table
-LOD IDE_DRIVER.Cyl[2]
-STR IDE_DRIVER.Cyl23[0]
-LOD IDE_DRIVER.Cyl[3]
-STR IDE_DRIVER.Cyl23[1]
-LOD IDE_DRIVER.Cyl[0]
-STR IDE_DRIVER.Cyl01[0]
-LOD IDE_DRIVER.Cyl[1]
-STR IDE_DRIVER.Cyl01[1]
-
-#Setup our pointers for the location loop
-LOD &(IDE_DRIVER.RegTable[0])[0]
-STR IDE_DRIVER.RegPtr[1]
-LOD &(IDE_DRIVER.RegTable[0])[1]
-STR IDE_DRIVER.RegPtr[2]
-LOD &(IDE_DRIVER.RegTable[0])[2]
-STR IDE_DRIVER.RegPtr[3]
-LOD &(IDE_DRIVER.RegTable[0])[3]
-STR IDE_DRIVER.RegPtr[4]
-LOD &(IDE_DRIVER.LocTable[0])[0]
-STR IDE_DRIVER.LocPtr1[1]
-LOD &(IDE_DRIVER.LocTable[0])[1]
-STR IDE_DRIVER.LocPtr1[2]
-LOD &(IDE_DRIVER.LocTable[0])[2]
-STR IDE_DRIVER.LocPtr1[3]
-LOD &(IDE_DRIVER.LocTable[0])[3]
-STR IDE_DRIVER.LocPtr1[4]
-
-LOD N_[0]
-STR IDE_DRIVER.LocationLoop[0]
-
-IDE_DRIVER.SetupLoop:
-
-#Enter sector count - always 1
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.RegPtr:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.LocPtr1:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr1[4]
-STR IDE_DRIVER.LocPtr2[4]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr1[3]
-STR IDE_DRIVER.LocPtr2[3]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr1[2]
-STR IDE_DRIVER.LocPtr2[2]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr1[1]
-STR IDE_DRIVER.LocPtr2[1]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.LocPtr2:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr2[4]
-STR IDE_DRIVER.LocPtr1[4]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr2[3]
-STR IDE_DRIVER.LocPtr1[3]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr2[2]
-STR IDE_DRIVER.LocPtr1[2]
-LOD N_[0]
-ADD IDE_DRIVER.LocPtr2[1]
-STR IDE_DRIVER.LocPtr1[1]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.RegPtr[4]
-STR IDE_DRIVER.RegPtr[4]
-LOD N_[0]
-ADD IDE_DRIVER.RegPtr[3]
-STR IDE_DRIVER.RegPtr[3]
-LOD N_[0]
-ADD IDE_DRIVER.RegPtr[2]
-STR IDE_DRIVER.RegPtr[2]
-LOD N_[0]
-ADD IDE_DRIVER.RegPtr[1]
-STR IDE_DRIVER.RegPtr[1]
+#a comment
+NND lit[F]
+NND N_[F]
+#Trying a nested Macro
+STR macro[0]
 LOD N_[0]
 ADD N_[0]
-LOD N_[1]
-ADD IDE_DRIVER.LocationLoop[0]
-STR IDE_DRIVER.LocationLoop[0]
-#will never cause carry, and leaves value in acc
+LOD macro[0]
+NND N_[F]
+ADD N_[1]
+#The carry macro
+LOD N_[0]
+ADD N_[0]
 
-ADD N_[B]
+#Test out the include statements!
+;Included TestINCL
+
+#simple acc stuff - being exhaustive in my tests
+STR macro[0]
+LOD N_[0]
+ADD N_[0]
+LOD macro[0]
+ADD N_[1]
 STR macro[0]
 LOD N_[0]
 ADD N_[0]
 LOD macro[0]
 ADD N_[F]
-CXA 0
-NND N_[1]
-NND N_[1]
-NND N_[F]
-JMP IDE_DRIVER.SetupLoop
-#Repeat 5 times
 
-#Control flow splits here:
-#If they wrote zero to ZeroToWrite, skip
-#ahead to the write driver
-
-LOD N_[0]
-STR IDE_DRIVER.LoopCount[0]
-LOD N_[0]
-STR IDE_DRIVER.LoopCount[1]
-LOD N_[0]
-STR IDE_DRIVER.LoopCount[2]
-LOD N_[0]
-STR IDE_DRIVER.LoopCount[3]
-
-LOD IDE_DRIVER.ZeroToWrite
-JMP IDE_DRIVER.Write
-
-#-----------------------------------------------------------------
-#Code to read:
-
-
-#Tell it to start reading
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[f]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[2]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-IDE_DRIVER.CheckReadLoop:
-#Wait for ready
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[f]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[1]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-
-
-#Loop until MSB of .Status[1] is 1
-LOD IDE_DRIVER.Status[1]
-ADD N_[8]
-LOD N_[0]
-ADD N_[0]
-JMP IDE_DRIVER.CheckReadLoop
-
-#Drive is ready, time to start reading
-
-LOD IDE_DRIVER.DataPtr[0]
-STR IDE_DRIVER.RPtr4[1]
-LOD IDE_DRIVER.DataPtr[1]
-STR IDE_DRIVER.RPtr4[2]
-LOD IDE_DRIVER.DataPtr[2]
-STR IDE_DRIVER.RPtr4[3]
-LOD IDE_DRIVER.DataPtr[3]
-STR IDE_DRIVER.RPtr4[4]
-
-IDE_DRIVER.ReadLoop:
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[8]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#When it starts presenting data,
-#take that data and put it into memory.
-#Increment the memory pointer each time;
-#writing sixteen bits each time through
-#this loop.
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr4[4]
-STR IDE_DRIVER.RPtr3[4]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr4[3]
-STR IDE_DRIVER.RPtr3[3]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr4[2]
-STR IDE_DRIVER.RPtr3[2]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr4[1]
-STR IDE_DRIVER.RPtr3[1]
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr3[4]
-STR IDE_DRIVER.RPtr2[4]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr3[3]
-STR IDE_DRIVER.RPtr2[3]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr3[2]
-STR IDE_DRIVER.RPtr2[2]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr3[1]
-STR IDE_DRIVER.RPtr2[1]
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr2[4]
-STR IDE_DRIVER.RPtr1[4]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr2[3]
-STR IDE_DRIVER.RPtr1[3]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr2[2]
-STR IDE_DRIVER.RPtr1[2]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr2[1]
-STR IDE_DRIVER.RPtr1[1]
-
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-IDE_DRIVER.RPtr1:
-STR 0x0000
-LOD N_[0]
-STR STATUS_BUS[0]
-
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-IDE_DRIVER.RPtr2:
-STR 0x0000
-LOD N_[0]
-STR STATUS_BUS[0]
-
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-IDE_DRIVER.RPtr3:
-STR 0x0000
-LOD N_[0]
-STR STATUS_BUS[0]
-
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-IDE_DRIVER.RPtr4:
-STR 0x0000
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr1[4]
-STR IDE_DRIVER.RPtr4[4]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr1[3]
-STR IDE_DRIVER.RPtr4[3]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr1[2]
-STR IDE_DRIVER.RPtr4[2]
-LOD N_[0]
-ADD IDE_DRIVER.RPtr1[1]
-STR IDE_DRIVER.RPtr4[1]
-
-#Control flow - this loop only goes around 256 times
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.LoopCount[1]
-STR IDE_DRIVER.LoopCount[1]
-LOD N_[0]
-ADD IDE_DRIVER.LoopCount[0]
-STR IDE_DRIVER.LoopCount[0]
-LOD N_[0]
-ADD N_[0]
+#shifts
 STR macro[0]
 LOD N_[0]
 ADD N_[0]
 LOD macro[0]
-ADD N_[F]
-CXA 0
-NND N_[1]
-NND N_[1]
-NND N_[F]
-JMP IDE_DRIVER.DoneReadLoop
+ADD macro[0]
 
-LOD N_[0]
-JMP IDE_DRIVER.ReadLoop
-
-IDE_DRIVER.DoneReadLoop:
-
-
-
-
-LOD N_[0]
-JMP IDE_DRIVER.Done
-
-#-----------------------------------------------------------------------------
-
-IDE_DRIVER.Write:
-#Tell it to start writing (0x30 to reg F)
-
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[f]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[3]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#execute
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-
-
-LOD IDE_DRIVER.DataPtr[0]
-STR IDE_DRIVER.WPtr4[1]
-LOD IDE_DRIVER.DataPtr[1]
-STR IDE_DRIVER.WPtr4[2]
-LOD IDE_DRIVER.DataPtr[2]
-STR IDE_DRIVER.WPtr4[3]
-LOD IDE_DRIVER.DataPtr[3]
-STR IDE_DRIVER.WPtr4[4]
-
-IDE_DRIVER.WriteLoop:
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[8]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#This code self-modifies by inserting the data pointer
-#provided into the LOD instructions below, then incrementing it
-#and putting the result in the other LOD instruction
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr4[4]
-STR IDE_DRIVER.WPtr3[4]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr4[3]
-STR IDE_DRIVER.WPtr3[3]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr4[2]
-STR IDE_DRIVER.WPtr3[2]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr4[1]
-STR IDE_DRIVER.WPtr3[1]
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr3[4]
-STR IDE_DRIVER.WPtr2[4]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr3[3]
-STR IDE_DRIVER.WPtr2[3]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr3[2]
-STR IDE_DRIVER.WPtr2[2]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr3[1]
-STR IDE_DRIVER.WPtr2[1]
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr2[4]
-STR IDE_DRIVER.WPtr1[4]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr2[3]
-STR IDE_DRIVER.WPtr1[3]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr2[2]
-STR IDE_DRIVER.WPtr1[2]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr2[1]
-STR IDE_DRIVER.WPtr1[1]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.WPtr1:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.WPtr2:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.WPtr3:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[4]
-STR STATUS_BUS[0]
-IDE_DRIVER.WPtr4:
-LOD 0x0000
-STR DATA_BUS
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr1[4]
-STR IDE_DRIVER.WPtr4[4]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr1[3]
-STR IDE_DRIVER.WPtr4[3]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr1[2]
-STR IDE_DRIVER.WPtr4[2]
-LOD N_[0]
-ADD IDE_DRIVER.WPtr1[1]
-STR IDE_DRIVER.WPtr4[1]
-
-#execute
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#Control flow - this loop only goes around 256 times
-
-LOD N_[8]
-ADD N_[8]
-LOD N_[0]
-ADD IDE_DRIVER.LoopCount[1]
-STR IDE_DRIVER.LoopCount[1]
-LOD N_[0]
-ADD IDE_DRIVER.LoopCount[0]
-STR IDE_DRIVER.LoopCount[0]
-LOD N_[0]
-ADD N_[0]
 STR macro[0]
 LOD N_[0]
 ADD N_[0]
 LOD macro[0]
-ADD N_[F]
-CXA 0
-NND N_[1]
-NND N_[1]
+ADD macro[0]
+ADD N_[0]
+label:
+
+#unary macros! Testing simple first
+LOD lit[f]
+STR place[0]
+
+#testing that the math works
+LOD place[3]
+STR elsewhere[a]
+LOD place[4]
+STR elsewhere[b]
+LOD place[5]
+STR elsewhere[c]
+LOD place[6]
+STR elsewhere[d]
+LOD place[7]
+STR elsewhere[e]
+LOD place[8]
+STR elsewhere[f]
+LOD place[9]
+STR elsewhere[10]
+LOD place[a]
+STR elsewhere[11]
+LOD place[b]
+STR elsewhere[12]
+LOD place[c]
+STR elsewhere[13]
+LOD place[d]
+STR elsewhere[14]
+LOD place[e]
+STR elsewhere[15]
+LOD place[f]
+STR elsewhere[16]
+LOD place[10]
+STR elsewhere[17]
+LOD place[11]
+STR elsewhere[18]
+LOD place[12]
+STR elsewhere[19]
+
+#does recursion between acc and unary work?
+LOD somewhere[1f]
 NND N_[F]
-JMP IDE_DRIVER.DoneWriteLoop
+STR place[0]
 
+#more complex recursion - 8-bit negations!
 LOD N_[0]
-JMP IDE_DRIVER.WriteLoop
+ADD N_[0]
+LOD source[1]
+NND N_[F]
+ADD N_[1]
+STR dest[1]
+LOD source[0]
+NND N_[F]
+ADD N_[0]
+STR dest[0]
 
-IDE_DRIVER.DoneWriteLoop:
-
-IDE_DRIVER.CheckWriteLoop:
-
-#Check for error codes
-
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[f]
-STR DATA_BUS[0]
+#test addition
 LOD N_[0]
-STR STATUS_BUS[0]
+ADD N_[0]
+LOD num[1]
+ADD othernum[1]
+STR sum[1]
+LOD num[0]
+ADD othernum[0]
+STR sum[0]
 
+#subtraction uses lots of macro memory
 LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#execute
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[1]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#Loop until MSB of .Status[1] is 0
-LOD IDE_DRIVER.Status[1]
 ADD N_[8]
-LOD N_[0]
-ADD N_[0]
-STR macro[0]
-LOD N_[0]
-ADD N_[0]
-LOD macro[0]
-ADD N_[F]
-CXA 0
-NND N_[1]
-NND N_[1]
+LOD firstop[7]
 NND N_[F]
-JMP IDE_DRIVER.CheckWriteLoop
+ADD firstop[7]
+STR dest[7]
+LOD secondop[6]
+NND N_[F]
+ADD firstop[6]
+STR dest[6]
+LOD secondop[5]
+NND N_[F]
+ADD firstop[5]
+STR dest[5]
+LOD secondop[4]
+NND N_[F]
+ADD firstop[4]
+STR dest[4]
+LOD secondop[3]
+NND N_[F]
+ADD firstop[3]
+STR dest[3]
+LOD secondop[2]
+NND N_[F]
+ADD firstop[2]
+STR dest[2]
+LOD secondop[1]
+NND N_[F]
+ADD firstop[1]
+STR dest[1]
+LOD secondop[0]
+NND N_[F]
+ADD firstop[0]
+STR dest[0]
 
-#Check the status register one last time,
-#leaving the code for the higher-level coder.
+#Addressing operations?
+LOD &(place[3])[0]
+STR somewhere[0]
+LOD &(place[3])[1]
+STR somewhere[1]
+LOD &(place[3])[2]
+STR somewhere[2]
+LOD &(place[3])[3]
+STR somewhere[3]
 
-LOD N_[4]
-STR STATUS_BUS[0]
-LOD N_[f]
-STR DATA_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
+#and again
+LOD &(somewhere[0])[0]
+STR place[3]
+LOD &(somewhere[0])[1]
+STR place[4]
+LOD &(somewhere[0])[2]
+STR place[5]
+LOD &(somewhere[0])[3]
+STR place[6]
 
+;alternate comment syntax
+;jump macros?
+LOD place[0]
+NND N_[f]
+STR macro[0]
+NND place[0]
+STR macro[1]
+LOD macro[0]
+NND N_[f]
+NND macro[1]
+STR macro[2]
+LOD macro[2]
+JMP label[0]
+
+#Letting people use whatever the hell value type they want
+LOD N_[5]
+STR label[0]
+LOD N_[b]
+STR label[0]
 LOD N_[8]
-STR STATUS_BUS[0]
+STR label[0]
+LOD label[10]
+STR label[0]
+
+#Now less picky! Assumes INTO $op1 if no dest given
 LOD N_[0]
-STR STATUS_BUS[0]
+ADD N_[0]
+LOD this[2]
+NND N_[F]
+ADD N_[1]
+STR this[2]
+LOD this[1]
+NND N_[F]
+ADD N_[0]
+STR this[1]
 
-LOD N_[8]
-STR STATUS_BUS[0]
+
+;End of code from TestNK
+
+;Start of code from TestINCL
+
+#this is from TestINCL!
+LOD &(myData[0])[0]
+STR myPointer[0]
+LOD &(myData[0])[1]
+STR myPointer[1]
+LOD &(myData[0])[2]
+STR myPointer[2]
+LOD &(myData[0])[3]
+STR myPointer[3]
 LOD N_[0]
-STR STATUS_BUS[0]
+JMP myPointer
 
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
+#recursive includes should NOT break
+;Ignored repeated include: TestNK
+HLT
 
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
+#TestINCL Data
 
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-#execute
-
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[0]
-LOD N_[0]
-STR STATUS_BUS[0]
-LOD N_[8]
-STR STATUS_BUS[0]
-LOD DATA_BUS
-STR IDE_DRIVER.Status[1]
-LOD N_[0]
-STR STATUS_BUS[0]
-
-IDE_DRIVER.Done:
-LOD N_[0]
-STR CHIP_SELECT[0]
-#Exit - this needs the return address to be supplied
-LOD N_[0]
-IDE_DRIVER.Exit:
-JMP 0x0000
-
-
-
-;End of code from ../../Drivers/driver-ide/driver.s
+;End of code from TestINCL
 ;Start of data sections
-;Start of data from ../../Drivers/driver-ide/driver.s
+;Start of data from TestNK
 
-IDE_DRIVER.Cyl: .data 4
-IDE_DRIVER.ZeroToWrite: .data 1
-IDE_DRIVER.RegTable: .data 5 0xABCDE
-IDE_DRIVER.LocTable:
-IDE_DRIVER.SecCount: .data 2 0x01
-IDE_DRIVER.SecNum: .data 2
-IDE_DRIVER.Cyl23: .data 2
-IDE_DRIVER.Cyl01: .data 2
-IDE_DRIVER.Head: .data 2 0xE0
-IDE_DRIVER.DataPtr: .data 4
-IDE_DRIVER.LoopCount: .data 2 0x0
-IDE_DRIVER.LocationLoop: .data 1 0x0
-IDE_DRIVER.Status: .data 2
+TestData: .data 5
 
-;End of data from ../../Drivers/driver-ide/driver.s
+;End of data from TestNK
+
+;Start of data from TestINCL
+
+myData: .data 4
+.data 2
+#more testINCL data
+.data 1
+
+;End of data from TestINCL
 
 ;memory space used by macros
-macro: .data 1
+macro: .data 3
 

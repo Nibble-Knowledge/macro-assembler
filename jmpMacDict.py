@@ -9,13 +9,13 @@
 jmpMac = dict()
 
 jmpMac["JMPEQ"] = """\
-SUB $op1 $op2 INTO macro[1]
-LOD macro[1]
+XOR $op1 $op2 INTO macro[2]
+LOD macro[2]
 JMP $dest"""
 
 jmpMac["JMPNE"] = """\
-SUB $op1 $op2 INTO macro[1]
-LOD macro[1]
+XOR $op1 $op2 INTO macro[2]
+LOD macro[2]
 LOGNOT ACC
 JMP $dest"""
 
@@ -56,20 +56,20 @@ JMP $dest"""
 #larger jump macros.
 
 jmpMac["JMPEQ8"] = """\
-SUB8 $op1 $op2 INTO macro[1]
-OR macro[1] macro[2] INTO macro[1]
+XOR8 $op1 $op2 INTO macro[2]
+OR macro[2] macro[3] INTO macro[1]
 LOD macro[1]
 JMP $dest"""
 
 jmpMac["JMPNE8"] = """\
-SUB8 $op1 $op2 INTO macro[1]
-OR macro[1] macro[2] INTO macro[1]
+XOR8 $op1 $op2 INTO macro[2]
+OR macro[3] macro[2] INTO macro[1]
 LOD macro[1]
 LOGNOT ACC
 JMP $dest"""
 
 jmpMac["JMPEQ16"] = """\
-SUB16 $op1 $op2 INTO macro[2]
+XOR16 $op1 $op2 INTO macro[2]
 OR macro[2] macro[5] INTO macro[2]
 OR macro[2] macro[4] INTO macro[2]
 OR macro[2] macro[3] INTO macro[2]
@@ -77,7 +77,7 @@ LOD macro[2]
 JMP $dest"""
 
 jmpMac["JMPNE16"] = """\
-SUB16 $op1 $op2 INTO macro[2]
+XOR16 $op1 $op2 INTO macro[2]
 OR macro[2] macro[5] INTO macro[2]
 OR macro[2] macro[4] INTO macro[2]
 OR macro[2] macro[3] INTO macro[2]
@@ -86,7 +86,7 @@ LOGNOT ACC
 JMP $dest"""
 
 jmpMac["JMPEQ32"] = """\
-SUB32 $op1 $op2 INTO macro[2]
+XOR32 $op1 $op2 INTO macro[2]
 OR macro[2] macro[9] INTO macro[2]
 OR macro[2] macro[8] INTO macro[2]
 OR macro[2] macro[7] INTO macro[2]
@@ -111,7 +111,7 @@ LOGNOT ACC
 JMP $dest"""
 
 jmpMac["JMPEQ64"] = """\
-SUB64 $op1 $op2 INTO macro[2]
+XOR64 $op1 $op2 INTO macro[2]
 OR macro[2] macro[11] INTO macro[2]
 OR macro[2] macro[10] INTO macro[2]
 OR macro[2] macro[F] INTO macro[2]
@@ -131,7 +131,7 @@ LOD macro[2]
 JMP $dest"""
 
 jmpMac["JMPNE64"] = """\
-SUB64 $op1 $op2 INTO macro[2]
+XOR64 $op1 $op2 INTO macro[2]
 OR macro[2] macro[11] INTO macro[2]
 OR macro[2] macro[10] INTO macro[2]
 OR macro[2] macro[F] INTO macro[2]
