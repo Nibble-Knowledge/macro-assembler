@@ -180,8 +180,8 @@ def expandAccMacro(inMac):
 	outlines = []
 
 	for line in accMac[inMac[0]].splitlines():
-		outlines.extend(expandline(line.split()))
 		countMacroUsage(line.split())
+		outlines.extend(expandline(line.split()))
 	return outlines
 
 # Really the only difference between unary and binary is
@@ -299,6 +299,9 @@ def replaceLabels(splitline, oldlabel, replabel):
 def countMacroUsage(outline):
 	#check if we're using macro memory. If so, we might need to 
 	#expand our macro memory bank.
+	#We can get away with only checking the last token on the line
+	#because macro memory is always assigned to before it is used,
+	#and assignment is always to the last label on a line.
 	if "macro[" in outline[-1]:
 		macoffset = outline[-1][outline[-1].index('[') + 1 : outline[-1].index(']')]
 		macoffset = int(macoffset, 16)

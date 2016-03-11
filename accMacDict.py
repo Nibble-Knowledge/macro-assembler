@@ -63,10 +63,8 @@ ADD N_[0]"""
 accMac["LOGNOT"] = """\
 CLRCARR ACC
 ADD N_[F]
-CXA 0
-NND N_[1]
-NND N_[1]
-NND N_[F]"""
+LOD N_[F]
+ADD N_[0]"""
 
 accMac["SIGNEX"] = """\
 CLRCARR ACC
