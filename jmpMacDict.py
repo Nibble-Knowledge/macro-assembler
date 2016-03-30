@@ -160,7 +160,7 @@ LOGNOT ACC
 JMP $dest"""
 
 jmpMac["JMPL8"] = """\
-JMPG8 $op2 $op1 $dest
+JMPG8 $op2 $op1 TO $dest
 """
 
 jmpMac["JMPLE8"] = """\
@@ -185,7 +185,7 @@ JMP $dest
 """
 
 jmpMac["JMPL16"] = """\
-JMPG16 $op2 $op1 $dest
+JMPG16 $op2 $op1 TO $dest
 """
 
 jmpMac["JMPLE16"] = """\
